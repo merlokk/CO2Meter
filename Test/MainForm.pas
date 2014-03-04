@@ -42,17 +42,18 @@ implementation
 
 procedure TForm1.Button1Click(Sender: TObject);
 Var
-  res,
   ver,
   id: string;
 begin
   if m = nil then exit;
-  
-  res := m.GetInfo(id, ver);
-  if res = '' then
+
+  try
+    m.GetInfo(id, ver);
     Memo1.Lines.Add('Get info: id=' + id + ' version=' + ver)
-  else
-    Memo1.Lines.Add('Get info error: ' + res)
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Get info error: ' + e.Message);
+  end;
 end;
 
 procedure TForm1.Button4Click(Sender: TObject);
@@ -63,7 +64,7 @@ end;
 procedure TForm1.Button8Click(Sender: TObject);
 begin
   if m <> nil then m.Free;
-  
+
   m := TCO2Meter.Create;
   m.OpenPort(StrToIntDef(Edit3.Text, 1));
 end;

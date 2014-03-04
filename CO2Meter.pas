@@ -17,8 +17,8 @@ type
     FComPortActive: boolean;
 
     procedure PortSend(AData: string);
-    function PortReceive(ATimeout: integer; ATimeoutAfterLastSymb: integer): string;
-    function SendCommand(ACommand: string; ATimeout: integer; ATimeoutAfterLastSymb: integer): string;
+    function PortReceive(AOneLine: boolean; ATimeout: cardinal; ATimeoutAfterLastSymb: cardinal): string;
+    function SendCommand(ACommand: string; ATimeout: cardinal; ATimeoutAfterLastSymb: cardinal): string;
   public
     constructor Create;
     destructor Free;
@@ -26,7 +26,7 @@ type
     procedure OpenPort(AComPort: integer);
     procedure ClosePort;
 
-    function GetInfo(var Id: string; var Version: string): string;
+    procedure GetInfo(var Id: string; var Version: string);
   end;
 
 implementation
@@ -51,15 +51,23 @@ begin
 
 end;
 
-function TCO2Meter.GetInfo(var Id, Version: string): string;
+procedure TCO2Meter.GetInfo(var Id, Version: string);
 var
   res: string;
+  i: integer;
 begin
-  Result := '';
   Id := '';
   Version := '';
 
   res := SendCommand('I', 0, 0);
+  if length(res) < 4 then Exception.Create('No response from device.');
+  if res[length(res)] <> #$0D then Exception.Create('Invalid response from device.');
+  if res[1] <> 'i' then Exception.Create('Invalid class response from device. class=' + res[1]);
+  for i := 1 to length(res) do if res[i] = #0 then res[i] := ' ';
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  Id := Copy(res, 1, Pos(' ', res) - 1);
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  Version := Trim(Copy(res, 1, length(res) - 1));
 end;
 
 procedure TCO2Meter.OpenPort(AComPort: integer);
@@ -71,16 +79,18 @@ begin
   FPort.Open;
 end;
 
-function TCO2Meter.PortReceive(ATimeout: integer; ATimeoutAfterLastSymb: integer): string;
+function TCO2Meter.PortReceive(AOneLine: boolean; ATimeout: cardinal; ATimeoutAfterLastSymb: cardinal): string;
 var
   dataout,
   s: string;
   cnt: integer;
-  tc: cardinal;
+  tc,
+  tcb: cardinal;
 begin
   dataout := '';
 
   tc := GetTickCount;
+  tcb := 0;
 
   while true do
   begin
@@ -89,21 +99,16 @@ begin
     begin
       FPort.ReadStr(s, cnt);
       dataout := dataout + s;
+      tcb := GetTickCount;
     end;
 
     sleep(10);
-    if tc + ATimeout < GetTickCount then break;
+    if (ATimeout <> 0) and (tc + ATimeout < GetTickCount) then break;
+    if (ATimeoutAfterLastSymb <> 0) and (tcb <> 0) and (tcb + ATimeoutAfterLastSymb < GetTickCount) then break;
+    if AOneLine and (length(dataout) > 0)  and (dataout[length(dataout)] = #$0D) then break;
   end;
 
-  // похоже выгребли не все
-  if (dataout = '') or (crc16AnsiString(dataout) <> #0#0) then
-   begin
-    sleep(100);
-
-    FPort.ReadStr(s, FPort.InputCount);
-    dataout := dataout + s;
-    if s <> '' then Result := merNone;
-   end;
+  Result := dataout;
 end;
 
 procedure TCO2Meter.PortSend(AData: string);
@@ -119,11 +124,11 @@ begin
 end;
 
 function TCO2Meter.SendCommand(ACommand: string; ATimeout,
-  ATimeoutAfterLastSymb: integer): string;
+  ATimeoutAfterLastSymb: cardinal): string;
 begin
-  PortSend(ACommand);
+  PortSend(ACommand + #$0D);
 
-  Result := PortReceive;
+  Result := PortReceive(true, ATimeout, ATimeoutAfterLastSymb);
 end;
 
 end.
