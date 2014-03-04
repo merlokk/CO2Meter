@@ -86,6 +86,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Set identifier'
     TabOrder = 7
+    OnClick = Button6Click
   end
   object Edit2: TEdit
     Left = 416

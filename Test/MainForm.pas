@@ -27,6 +27,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -74,13 +75,26 @@ begin
     );
   except
     on e : Exception do
-      Memo1.Lines.Add('Get info error: ' + e.Message);
+      Memo1.Lines.Add('Get memory stat error: ' + e.Message);
   end;
 end;
 
 procedure TForm1.Button4Click(Sender: TObject);
 begin
   Memo1.Lines.Clear;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+  if m = nil then exit;
+
+  try
+    m.SetId(Edit1.Text);
+    Memo1.Lines.Add('Set ID ok');
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Set ID error: ' + e.Message);
+  end;
 end;
 
 procedure TForm1.Button8Click(Sender: TObject);

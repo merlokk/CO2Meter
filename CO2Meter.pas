@@ -23,6 +23,8 @@ type
     function StrNextVal(s: string): string;
     function StrGetVal(s: string): string;
     function StrGetLastVal(s: string): string;
+
+    procedure CheckResponse(r: string; CmdClass: Char);
   public
     constructor Create;
     destructor Free;
@@ -32,11 +34,22 @@ type
 
     procedure GetInfo(var Id: string; var Version: string);
     procedure GetMemoryStat(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime);
+
+    procedure SetDateTime(DT: TDateTime);
+    procedure SetId(Id: string);
+    procedure SetSamplingRate(SamplesRate: cardinal);
   end;
 
 implementation
 
 { TCO2Meter }
+
+procedure TCO2Meter.CheckResponse(r: string; CmdClass: Char);
+begin
+  if length(r) < 4 then raise Exception.Create('No response from device.');
+  if r[length(r)] <> #$0D then raise Exception.Create('Invalid response from device.');
+  if r[1] <> CmdClass then raise Exception.Create('Invalid class response from device. class=' + r[1]);
+end;
 
 procedure TCO2Meter.ClosePort;
 begin
@@ -65,9 +78,7 @@ begin
   Version := '';
 
   res := SendCommand('I', 0, 0);
-  if length(res) < 4 then raise Exception.Create('No response from device.');
-  if res[length(res)] <> #$0D then raise Exception.Create('Invalid response from device.');
-  if res[1] <> 'i' then raise Exception.Create('Invalid class response from device. class=' + res[1]);
+  CheckResponse(res, 'i');
 
   // fixes bug
   for i := 1 to length(res) do if res[i] = #0 then res[i] := ' ';
@@ -88,9 +99,7 @@ begin
   SamplesStartDate := EncodeDate(2000, 1, 1);
 
   res := SendCommand('M', 0, 0);
-  if length(res) < 4 then raise Exception.Create('No response from device.');
-  if res[length(res)] <> #$0D then raise Exception.Create('Invalid response from device.');
-  if res[1] <> 'm' then raise Exception.Create('Invalid class response from device. class=' + res[1]);
+  CheckResponse(res, 'm');
 
   res := StrNextVal(res);
   SamplesCount := StrToIntDef(StrGetVal(res), 0);
@@ -164,6 +173,26 @@ begin
   PortSend(ACommand + #$0D);
 
   Result := PortReceive(true, ATimeout, ATimeoutAfterLastSymb);
+end;
+
+procedure TCO2Meter.SetDateTime(DT: TDateTime);
+begin
+
+end;
+
+procedure TCO2Meter.SetId(Id: string);
+var
+  res: string;
+begin
+  if length(Id) <> 8 then raise Exception.Create('Invalid ID length.');
+
+  res := SendCommand('J ' + Id + ' 1', 0, 0);
+  CheckResponse(res, 'i');
+end;
+
+procedure TCO2Meter.SetSamplingRate(SamplesRate: cardinal);
+begin
+
 end;
 
 function TCO2Meter.StrGetLastVal(s: string): string;
