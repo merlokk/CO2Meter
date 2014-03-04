@@ -27,6 +27,7 @@ type
     procedure ClosePort;
 
     procedure GetInfo(var Id: string; var Version: string);
+    procedure GetMemoryStat(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime);
   end;
 
 implementation
@@ -60,14 +61,44 @@ begin
   Version := '';
 
   res := SendCommand('I', 0, 0);
-  if length(res) < 4 then Exception.Create('No response from device.');
-  if res[length(res)] <> #$0D then Exception.Create('Invalid response from device.');
-  if res[1] <> 'i' then Exception.Create('Invalid class response from device. class=' + res[1]);
+  if length(res) < 4 then raise Exception.Create('No response from device.');
+  if res[length(res)] <> #$0D then raise Exception.Create('Invalid response from device.');
+  if res[1] <> 'i' then raise Exception.Create('Invalid class response from device. class=' + res[1]);
+
+  // fixes bug
   for i := 1 to length(res) do if res[i] = #0 then res[i] := ' ';
+
   res := Copy(res, Pos(' ', res) + 1, length(res));
   Id := Copy(res, 1, Pos(' ', res) - 1);
   res := Copy(res, Pos(' ', res) + 1, length(res));
   Version := Trim(Copy(res, 1, length(res) - 1));
+end;
+
+procedure TCO2Meter.GetMemoryStat(var SamplesCount, SamplesRate: cardinal;
+  var SamplesStartDate: TDateTime);
+var
+  res: string;
+begin
+  SamplesCount := 0;
+  SamplesRate := 0;
+  SamplesStartDate := EncodeDate(2000, 1, 1);
+
+  res := SendCommand('M', 0, 0);
+  if length(res) < 4 then raise Exception.Create('No response from device.');
+  if res[length(res)] <> #$0D then raise Exception.Create('Invalid response from device.');
+  if res[1] <> 'm' then raise Exception.Create('Invalid class response from device. class=' + res[1]);
+
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  SamplesCount := StrToIntDef(Copy(res, 1, Pos(' ', res) - 1), 0);
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  SamplesRate := StrToIntDef(Copy(res, 1, Pos(' ', res) - 1), 0);
+
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  //  here constant "C"
+
+  res := Copy(res, Pos(' ', res) + 1, length(res));
+  res := '$' + StringReplace(Copy(res, 1, length(res) - 1), ' ', '', [rfReplaceAll]);
+  SamplesStartDate := SamplesStartDate + StrToIntDef(res, 0) / SecsPerDay;
 end;
 
 procedure TCO2Meter.OpenPort(AComPort: integer);
@@ -115,7 +146,7 @@ procedure TCO2Meter.PortSend(AData: string);
 var
   dataout: string;
 begin
-  if not FPort.Connected then Exception.Create('COM port not opened');
+  if not FPort.Connected then raise Exception.Create('COM port not opened');
 
   //flush
   FPort.ReadStr(dataout, FPort.InputCount);

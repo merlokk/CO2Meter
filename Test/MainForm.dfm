@@ -42,8 +42,9 @@ object Form1: TForm1
     Top = 71
     Width = 201
     Height = 25
-    Caption = 'Get memjry statistic'
+    Caption = 'Get memory statistic'
     TabOrder = 2
+    OnClick = Button2Click
   end
   object Button3: TButton
     Left = 8

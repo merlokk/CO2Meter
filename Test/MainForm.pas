@@ -26,6 +26,7 @@ type
     procedure Button8Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -50,6 +51,27 @@ begin
   try
     m.GetInfo(id, ver);
     Memo1.Lines.Add('Get info: id=' + id + ' version=' + ver)
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Get info error: ' + e.Message);
+  end;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+Var
+  SamplesCount,
+  SamplesRate: cardinal;
+  SamplesStartDate: TDateTime;
+begin
+  if m = nil then exit;
+
+  try
+    m.GetMemoryStat(SamplesCount, SamplesRate, SamplesStartDate);
+    Memo1.Lines.Add('Get memory stat: cnt=' + IntToStr(SamplesCount) +
+                    ' rate=' + IntToStr(SamplesRate) +
+                    ' start date=' + DateTimeToStr(SamplesStartDate) +
+                    ' end date=' + DateTimeToStr(SamplesStartDate + SamplesRate * (SamplesCount / 3 - 1) / SecsPerDay)
+    );
   except
     on e : Exception do
       Memo1.Lines.Add('Get info error: ' + e.Message);
