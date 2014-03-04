@@ -19,6 +19,10 @@ type
     procedure PortSend(AData: string);
     function PortReceive(AOneLine: boolean; ATimeout: cardinal; ATimeoutAfterLastSymb: cardinal): string;
     function SendCommand(ACommand: string; ATimeout: cardinal; ATimeoutAfterLastSymb: cardinal): string;
+
+    function StrNextVal(s: string): string;
+    function StrGetVal(s: string): string;
+    function StrGetLastVal(s: string): string;
   public
     constructor Create;
     destructor Free;
@@ -68,10 +72,10 @@ begin
   // fixes bug
   for i := 1 to length(res) do if res[i] = #0 then res[i] := ' ';
 
-  res := Copy(res, Pos(' ', res) + 1, length(res));
-  Id := Copy(res, 1, Pos(' ', res) - 1);
-  res := Copy(res, Pos(' ', res) + 1, length(res));
-  Version := Trim(Copy(res, 1, length(res) - 1));
+  res := StrNextVal(res);
+  Id := StrGetVal(res);
+  res := StrNextVal(res);
+  Version := Trim(StrGetLastVal(res));
 end;
 
 procedure TCO2Meter.GetMemoryStat(var SamplesCount, SamplesRate: cardinal;
@@ -88,16 +92,16 @@ begin
   if res[length(res)] <> #$0D then raise Exception.Create('Invalid response from device.');
   if res[1] <> 'm' then raise Exception.Create('Invalid class response from device. class=' + res[1]);
 
-  res := Copy(res, Pos(' ', res) + 1, length(res));
-  SamplesCount := StrToIntDef(Copy(res, 1, Pos(' ', res) - 1), 0);
-  res := Copy(res, Pos(' ', res) + 1, length(res));
-  SamplesRate := StrToIntDef(Copy(res, 1, Pos(' ', res) - 1), 0);
+  res := StrNextVal(res);
+  SamplesCount := StrToIntDef(StrGetVal(res), 0);
+  res := StrNextVal(res);
+  SamplesRate := StrToIntDef(StrGetVal(res), 0);
 
-  res := Copy(res, Pos(' ', res) + 1, length(res));
+  res := StrNextVal(res);
   //  here constant "C"
 
-  res := Copy(res, Pos(' ', res) + 1, length(res));
-  res := '$' + StringReplace(Copy(res, 1, length(res) - 1), ' ', '', [rfReplaceAll]);
+  res := StrNextVal(res);
+  res := '$' + StringReplace(StrGetLastVal(res), ' ', '', [rfReplaceAll]);
   SamplesStartDate := SamplesStartDate + StrToIntDef(res, 0) / SecsPerDay;
 end;
 
@@ -160,6 +164,21 @@ begin
   PortSend(ACommand + #$0D);
 
   Result := PortReceive(true, ATimeout, ATimeoutAfterLastSymb);
+end;
+
+function TCO2Meter.StrGetLastVal(s: string): string;
+begin
+  Result := Copy(s, 1, length(s) - 1);
+end;
+
+function TCO2Meter.StrGetVal(s: string): string;
+begin
+  Result := Copy(s, 1, Pos(' ', s) - 1);
+end;
+
+function TCO2Meter.StrNextVal(s: string): string;
+begin
+  Result := Copy(s, Pos(' ', s) + 1, length(s));
 end;
 
 end.
