@@ -1,7 +1,7 @@
 unit CO2Meter;
 
 //
-// COM port component http://sourceforge.net/projects/comport/files/comport/
+// COM port component from http://sourceforge.net/projects/comport/files/comport/
 //
 
 interface
@@ -28,7 +28,7 @@ type
     procedure ParseGetMemoryStat(res: string; var SamplesCount: Cardinal; var SamplesRate: Cardinal; var SamplesStartDate: TDateTime);
   public
     constructor Create;
-    destructor Free;
+    destructor Destroy;
 
     procedure OpenPort(AComPort: integer);
     procedure ClosePort;
@@ -56,7 +56,7 @@ end;
 
 procedure TCO2Meter.ClosePort;
 begin
-  FPort.Close;
+  FPort.Connected := false;
 end;
 
 constructor TCO2Meter.Create;
@@ -64,12 +64,14 @@ begin
   inherited Create;
 
   FComPortActive := false;
+  FPort := TComPort.Create(Nil);
 end;
 
-destructor TCO2Meter.Free;
+destructor TCO2Meter.Destroy;
 begin
-  inherited Free;
+  FPort.Free;
 
+  inherited
 end;
 
 procedure TCO2Meter.GetInfo(var Id, Version: string);
@@ -123,7 +125,7 @@ begin
    ParseGetMemoryStat(sl[0] + #$0D, SamplesCount, SamplesRate, SamplesStartDate);
    sl.Delete(0);
 
-   if sl.Count <> SamplesCount div 3 then raise Exception.Create('Length of received data less then declared.');
+   if sl.Count <> integer(SamplesCount div 3) then raise Exception.Create('Length of received data less then declared.');
 
    Samples.Assign(sl);
   finally
@@ -133,7 +135,6 @@ end;
 
 procedure TCO2Meter.OpenPort(AComPort: integer);
 begin
-  FPort := TComPort.Create(Nil);
   FPort.Port := 'COM' + IntToStr(AComPort);
   FPort.BaudRate := br9600;
 
@@ -185,8 +186,6 @@ begin
 end;
 
 function TCO2Meter.RawGetSamples: string;
-var
-  res: string;
 begin
   PortSend('D' + #$0D);
 
