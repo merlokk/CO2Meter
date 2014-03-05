@@ -23,6 +23,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure btCheckMemClick(Sender: TObject);
     procedure btCloseClick(Sender: TObject);
+    procedure btGetMemClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -73,6 +74,55 @@ end;
 procedure TfMain.btFileClick(Sender: TObject);
 begin
   if dgSave.Execute then edFileName.Text := dgSave.FileName;
+end;
+
+procedure TfMain.btGetMemClick(Sender: TObject);
+var
+  fname,
+  id,
+  version: string;
+  SamplesCount,
+  SamplesRate: cardinal;
+  SamplesStartDate: TDateTime;
+  sl: TStringList;
+  i: integer;
+begin
+  sl := TStringList.Create;
+  with TCO2Meter.Create do
+  try
+    OpenPort(StrToIntDef(edCOM.Text, 1));
+
+    GetInfo(id, version);
+    GetSamples(SamplesCount, SamplesRate, SamplesStartDate, sl);
+
+    lbInfo.Caption :=
+      'ID=' + id +
+      ' version=' + version + #$0d#$0a +
+      'samples=' + IntToStr(SamplesCount) +
+      ' rate=' + IntToStr(SamplesRate) + #$0d#$0a +
+      'start date=' + DateTimeToStr(SamplesStartDate) +
+      ' end date=' + DateTimeToStr(SamplesStartDate + SamplesRate * (SamplesCount / 3 - 1) / SecsPerDay)
+    ;
+
+    for i := 0 to sl.Count - 1 do
+    begin
+      sl[i] := StringReplace(sl[i], ' ', ',', [rfReplaceAll]);
+      sl[i] := Copy(sl[i], Pos(',', sl[i]) + 1, length(sl[i]));
+      sl[i] := '"' + DateTimeToStr(SamplesStartDate + i * SamplesRate / SecsPerDay) + '",' + sl[i];
+    end;
+
+    sl.Insert(0, 'Date, Temperature, CO2level, Humidity');
+
+    fname := edFileName.Text;
+    if ExtractFilePath(fname) = '' then
+      fname := ExtractFilePath(Application.ExeName) + fname;
+    sl.SaveToFile(fname);
+
+    ClosePort;
+  finally
+    Free;
+    sl.Free;
+  end;
 end;
 
 procedure TfMain.FormCreate(Sender: TObject);

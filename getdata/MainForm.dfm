@@ -62,6 +62,7 @@ object fMain: TfMain
     Height = 25
     Caption = 'Get memory'
     TabOrder = 2
+    OnClick = btGetMemClick
   end
   object btClose: TButton
     Left = 346
