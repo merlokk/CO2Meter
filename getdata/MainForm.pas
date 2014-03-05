@@ -108,7 +108,7 @@ begin
     begin
       sl[i] := StringReplace(sl[i], ' ', ',', [rfReplaceAll]);
       sl[i] := Copy(sl[i], Pos(',', sl[i]) + 1, length(sl[i]));
-      sl[i] := '"' + DateTimeToStr(SamplesStartDate + i * SamplesRate / SecsPerDay) + '",' + sl[i];
+      sl[i] := '"' + DateTimeToStr(SamplesStartDate + i * integer(SamplesRate) / SecsPerDay) + '",' + sl[i];
     end;
 
     sl.Insert(0, 'Date, Temperature, CO2level, Humidity');
@@ -128,6 +128,15 @@ end;
 procedure TfMain.FormCreate(Sender: TObject);
 begin
   dgSave.InitialDir := ExtractFilePath(Application.ExeName);
+
+  // command line parameters
+  if ParamCount > 0 then edCOM.Text := ParamStr(1);
+  if ParamCount > 1 then edFileName.Text := ParamStr(2);
+  if (ParamCount > 2) and ((ParamStr(3) = 'e') or (ParamStr(3) = 'E')) then
+  begin
+    btGetMem.Click;
+    Application.Terminate;
+  end;
 end;
 
 end.
