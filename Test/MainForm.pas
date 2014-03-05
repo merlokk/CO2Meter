@@ -30,6 +30,7 @@ type
     procedure Button6Click(Sender: TObject);
     procedure Button7Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -78,6 +79,33 @@ begin
   except
     on e : Exception do
       Memo1.Lines.Add('Get memory stat error: ' + e.Message);
+  end;
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+var
+  SamplesCount,
+  SamplesRate: cardinal;
+  SamplesStartDate: TDateTime;
+  sl: TStringList;
+begin
+  if m = nil then exit;
+
+  try
+    sl := TStringList.Create;
+    try
+      m.GetSamples(SamplesCount, SamplesRate, SamplesStartDate, sl);
+      Memo1.Lines.Add('Get samples ok. length=' + IntToStr(sl.Count) +
+                    ' rate=' + IntToStr(SamplesRate) +
+                    ' start date=' + DateTimeToStr(SamplesStartDate) +
+                    ' end date=' + DateTimeToStr(SamplesStartDate + SamplesRate * (SamplesCount / 3 - 1) / SecsPerDay)
+      );
+    finally
+      sl.Free;
+    end;
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Get samples error: ' + e.Message);
   end;
 end;
 

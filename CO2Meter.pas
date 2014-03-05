@@ -25,6 +25,7 @@ type
     function StrGetLastVal(s: string): string;
 
     procedure CheckResponse(r: string; CmdClass: Char);
+    procedure ParseGetMemoryStat(res: string; var SamplesCount: Cardinal; var SamplesRate: Cardinal; var SamplesStartDate: TDateTime);
   public
     constructor Create;
     destructor Free;
@@ -34,6 +35,8 @@ type
 
     procedure GetInfo(var Id: string; var Version: string);
     procedure GetMemoryStat(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime);
+    function RawGetSamples: string;
+    procedure GetSamples(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime; Samples: TStringList);
 
     procedure SetDateTime(DT: TDateTime);
     procedure SetId(Id: string);
@@ -100,18 +103,32 @@ begin
 
   res := SendCommand('M', 500, 0);
   CheckResponse(res, 'm');
+  ParseGetMemoryStat(res, SamplesCount, SamplesRate, SamplesStartDate);
+end;
 
-  res := StrNextVal(res);
-  SamplesCount := StrToIntDef(StrGetVal(res), 0);
-  res := StrNextVal(res);
-  SamplesRate := StrToIntDef(StrGetVal(res), 0);
+procedure TCO2Meter.GetSamples(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime; Samples: TStringList);
+var
+  res: string;
+  sl: TStringList;
+begin
+  Samples.Clear;
 
-  res := StrNextVal(res);
-  //  here constant "C"
+  res := RawGetSamples;
+  sl := TStringList.Create;
+  try
+   sl.Text := res;
 
-  res := StrNextVal(res);
-  res := '$' + StringReplace(StrGetLastVal(res), ' ', '', [rfReplaceAll]);
-  SamplesStartDate := SamplesStartDate + StrToIntDef(res, 0) / SecsPerDay;
+   if sl.Count < 2 then raise Exception.Create('Invalid received data.');
+
+   ParseGetMemoryStat(sl[0] + #$0D, SamplesCount, SamplesRate, SamplesStartDate);
+   sl.Delete(0);
+
+   if sl.Count <> SamplesCount div 3 then raise Exception.Create('Length of received data less then declared.');
+
+   Samples.Assign(sl);
+  finally
+    sl.Free;
+  end;
 end;
 
 procedure TCO2Meter.OpenPort(AComPort: integer);
@@ -167,6 +184,15 @@ begin
   FPort.WriteStr(AData);
 end;
 
+function TCO2Meter.RawGetSamples: string;
+var
+  res: string;
+begin
+  PortSend('D' + #$0D);
+
+  Result := PortReceive(false, 0, 500);
+end;
+
 function TCO2Meter.SendCommand(ACommand: string; ATimeout,
   ATimeoutAfterLastSymb: cardinal): string;
 begin
@@ -204,6 +230,26 @@ begin
 
   res := SendCommand('S ' + IntToStr(SamplesRate), 500, 0);
   CheckResponse(res, 'm');
+end;
+
+procedure TCO2Meter.ParseGetMemoryStat(res: string; var SamplesCount: Cardinal; var SamplesRate: Cardinal; var SamplesStartDate: TDateTime);
+begin
+  SamplesCount := 0;
+  SamplesRate := 0;
+  SamplesStartDate := EncodeDate(2000, 1, 1);
+
+  res := StrNextVal(res);
+  SamplesCount := StrToIntDef(StrGetVal(res), 0);
+
+  res := StrNextVal(res);
+  SamplesRate := StrToIntDef(StrGetVal(res), 0);
+
+  res := StrNextVal(res);
+  //  here constant "C"
+
+  res := StrNextVal(res);
+  res := '$' + StringReplace(StrGetLastVal(res), ' ', '', [rfReplaceAll]);
+  SamplesStartDate := SamplesStartDate + StrToIntDef(res, 0) / SecsPerDay;
 end;
 
 function TCO2Meter.StrGetLastVal(s: string): string;
