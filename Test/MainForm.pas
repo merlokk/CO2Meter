@@ -28,6 +28,8 @@ type
     procedure Button1Click(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -84,6 +86,19 @@ begin
   Memo1.Lines.Clear;
 end;
 
+procedure TForm1.Button5Click(Sender: TObject);
+begin
+  if m = nil then exit;
+
+  try
+    m.SetDateTime(Now);
+    Memo1.Lines.Add('Set datetime ok');
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Set datetime error: ' + e.Message);
+  end;
+end;
+
 procedure TForm1.Button6Click(Sender: TObject);
 begin
   if m = nil then exit;
@@ -94,6 +109,19 @@ begin
   except
     on e : Exception do
       Memo1.Lines.Add('Set ID error: ' + e.Message);
+  end;
+end;
+
+procedure TForm1.Button7Click(Sender: TObject);
+begin
+  if m = nil then exit;
+
+  try
+    m.SetSamplingRate(StrToIntDef(Edit2.Text, 1));
+    Memo1.Lines.Add('Set sampling rate ok');
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Set sampling rate error: ' + e.Message);
   end;
 end;
 

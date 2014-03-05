@@ -78,6 +78,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Set date and time'
     TabOrder = 6
+    OnClick = Button5Click
   end
   object Button6: TButton
     Left = 560
@@ -103,6 +104,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Set sampling rate'
     TabOrder = 9
+    OnClick = Button7Click
   end
   object Edit3: TEdit
     Left = 224

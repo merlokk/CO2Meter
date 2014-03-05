@@ -6,7 +6,7 @@ unit CO2Meter;
 
 interface
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, DateUtils,
   cport;
 
 type
@@ -77,7 +77,7 @@ begin
   Id := '';
   Version := '';
 
-  res := SendCommand('I', 0, 0);
+  res := SendCommand('I', 500, 0);
   CheckResponse(res, 'i');
 
   // fixes bug
@@ -98,7 +98,7 @@ begin
   SamplesRate := 0;
   SamplesStartDate := EncodeDate(2000, 1, 1);
 
-  res := SendCommand('M', 0, 0);
+  res := SendCommand('M', 500, 0);
   CheckResponse(res, 'm');
 
   res := StrNextVal(res);
@@ -176,8 +176,14 @@ begin
 end;
 
 procedure TCO2Meter.SetDateTime(DT: TDateTime);
+var
+  res: string;
+  d: integer;
 begin
+  d := SecondsBetween(EncodeDate(2000, 1, 1), DT);
 
+  res := SendCommand('C ' + IntToStr(d), 500, 0);
+  if res <> '>'#$0D then raise Exception.Create('Invalid response from device.');
 end;
 
 procedure TCO2Meter.SetId(Id: string);
@@ -186,13 +192,18 @@ var
 begin
   if length(Id) <> 8 then raise Exception.Create('Invalid ID length.');
 
-  res := SendCommand('J ' + Id + ' 1', 0, 0);
+  res := SendCommand('J ' + Id + ' 1', 500, 0);
   CheckResponse(res, 'i');
 end;
 
 procedure TCO2Meter.SetSamplingRate(SamplesRate: cardinal);
+var
+  res: string;
 begin
+  if SamplesRate > SecsPerDay then raise Exception.Create('Invalid sampling rate.');
 
+  res := SendCommand('S ' + IntToStr(SamplesRate), 500, 0);
+  CheckResponse(res, 'm');
 end;
 
 function TCO2Meter.StrGetLastVal(s: string): string;
