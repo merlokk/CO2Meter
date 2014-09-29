@@ -28,7 +28,7 @@ type
     procedure ParseGetMemoryStat(res: string; var SamplesCount: Cardinal; var SamplesRate: Cardinal; var SamplesStartDate: TDateTime);
   public
     constructor Create;
-    destructor Destroy;
+    destructor Destroy; override;
 
     procedure OpenPort(AComPort: integer);
     procedure ClosePort;
@@ -37,6 +37,7 @@ type
     procedure GetMemoryStat(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime);
     function RawGetSamples: string;
     procedure GetSamples(var SamplesCount: cardinal; var SamplesRate: cardinal; var SamplesStartDate: TDateTime; Samples: TStringList);
+    procedure GetCurrentMeasurement(var Temperature: real; var CO2Level: integer; var Humidity: real);
 
     procedure SetDateTime(DT: TDateTime);
     procedure SetId(Id: string);
@@ -72,6 +73,49 @@ begin
   FPort.Free;
 
   inherited
+end;
+
+procedure TCO2Meter.GetCurrentMeasurement(var Temperature: real;
+  var CO2Level: integer; var Humidity: real);
+var
+  res,
+  temp,
+  co2,
+  hum: string;
+  sl: TStringList;
+begin
+  Temperature := 0;
+  CO2Level := 0;
+  Humidity := 0;
+
+  res := SendCommand(':', 500, 0);
+  CheckResponse(res, ':');
+
+  sl := TStringList.Create;
+  try
+    sl.Delimiter := ':';
+    sl.DelimitedText := res;
+    if sl.Count < 4 then Exception.Create('Invalid response from device. Wrong response length');
+    temp := sl[1];
+    co2 := sl[2];
+    hum := sl[3];
+  finally
+    sl.Free;
+  end;
+
+  if temp[1] <> 'T' then Exception.Create('Invalid response from device. Cant get temperature');
+  temp := Copy(temp, 2, length(temp) - 2);
+  temp := StringReplace(temp, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
+  Temperature := StrToFloatDef(temp, 0);
+
+  if co2[1] <> 'C' then Exception.Create('Invalid response from device. Cant get C)2 level');
+  co2 := Copy(co2, 2, length(co2) - 4);
+  CO2Level := StrToIntDef(co2, 0);
+
+  if hum[1] <> 'H' then Exception.Create('Invalid response from device. Cant get humidity');
+  hum := Copy(hum, 2, length(hum) - 2);
+  hum := StringReplace(hum, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
+  Humidity := StrToFloatDef(hum, 0);
 end;
 
 procedure TCO2Meter.GetInfo(var Id, Version: string);

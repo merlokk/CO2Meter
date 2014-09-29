@@ -22,6 +22,7 @@ type
     Edit3: TEdit;
     Button8: TButton;
     Label1: TLabel;
+    Button9: TButton;
     procedure Button4Click(Sender: TObject);
     procedure Button8Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -31,6 +32,7 @@ type
     procedure Button7Click(Sender: TObject);
     procedure Button5Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
+    procedure Button9Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -159,6 +161,27 @@ begin
 
   m := TCO2Meter.Create;
   m.OpenPort(StrToIntDef(Edit3.Text, 1));
+end;
+
+procedure TForm1.Button9Click(Sender: TObject);
+var
+  Temperature: real;
+  CO2Level: integer;
+  Humidity: real;
+begin
+  if m = nil then exit;
+
+  try
+    m.GetCurrentMeasurement(Temperature, CO2Level, Humidity);
+    Memo1.Lines.Add('Get current measurement ok. ' +
+                  ' temperature=' + FloatToStr(Temperature) +
+                  ' CO2level=' + IntToStr(CO2Level) +
+                  ' humidity=' + FloatToStr(Humidity)
+    );
+  except
+    on e : Exception do
+      Memo1.Lines.Add('Get current measurement error: ' + e.Message);
+  end;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
