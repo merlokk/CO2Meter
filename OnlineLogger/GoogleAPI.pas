@@ -199,7 +199,6 @@ begin
     begin
       JSONObject := RESTRequest.Response.JSONValue as TJSONObject;
 
-      //узнаем тип ответа сервера
       RESTRequest.Response.GetSimpleValue('kind', kind);
       if kind = 'drive#fileList' then
       begin
@@ -272,7 +271,8 @@ end;
 function TGoogleAPI.GetWorksheetList(AFileID: string): TWorksheets;
 var
   JSONObject,
-  spreadsheet: TJSONObject;
+  spreadsheet,
+  link: TJSONObject;
   linklist,
   entry: TJSONArray;
   sl: TStringList;
@@ -309,12 +309,21 @@ begin
       Result[length(Result)-1].ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$colCount').JsonValue), 0);
       Result[length(Result)-1].ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$rowCount').JsonValue), 0);
 
-      linklist := JSONObject.GetValue('feed') as TJSONArray;
+      s := '';
+      linklist := spreadsheet.GetValue('link') as TJSONArray;
       if Assigned(linklist) then
         for j := 0 to linklist.Count - 1 do
         begin
-
+          link := linklist.Items[j] as TJSONObject;
+          if not Assigned(link) then continue;
+          if (link.GetValue('rel').ToString = 'edit') or (link.GetValue('rel').ToString = '"edit"') then
+          begin
+            s := link.GetValue('href').ToString;
+            break;
+          end;
         end;
+      s := ReverseString(s);
+      Result[length(Result)-1].EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
     end;
   end;
 end;
