@@ -103,16 +103,16 @@ begin
     sl.Free;
   end;
 
-  if temp[1] <> 'T' then Exception.Create('Invalid response from device. Cant get temperature');
+  if temp[1] <> 'T' then Exception.Create('Invalid response from device. Can''t get temperature');
   temp := Copy(temp, 2, length(temp) - 2);
   temp := StringReplace(temp, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
   Temperature := StrToFloatDef(temp, 0);
 
-  if co2[1] <> 'C' then Exception.Create('Invalid response from device. Cant get C)2 level');
+  if co2[1] <> 'C' then Exception.Create('Invalid response from device. Can''t get CO2 level');
   co2 := Copy(co2, 2, length(co2) - 4);
   CO2Level := StrToIntDef(co2, 0);
 
-  if hum[1] <> 'H' then Exception.Create('Invalid response from device. Cant get humidity');
+  if hum[1] <> 'H' then Exception.Create('Invalid response from device. Can''t get humidity');
   hum := Copy(hum, 2, length(hum) - 2);
   hum := StringReplace(hum, '.', FormatSettings.DecimalSeparator, [rfReplaceAll]);
   Humidity := StrToFloatDef(hum, 0);
