@@ -15,6 +15,8 @@ type
     EditTag: string;
     ColCount,
     RowCount: integer;
+
+    procedure Clear;
   end;
   TWorksheets = array of TWorksheet;
 
@@ -37,6 +39,7 @@ type
     procedure ClearRESTConnector;
 
     function GetSpValue(val: TJSONValue): string;
+    function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
   public
     constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
 
@@ -51,8 +54,8 @@ type
     function GetFileID(ADir, AFileName: string): string;
 
     function GetWorksheetList(AFileID: string): TWorksheets;
-    function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): string;
-    function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetName: string; ARowCount, AColCount: integer): string;
+    function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
+    function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
     function GetCells(AFileID: string; MinRow, MaxRow, MinCol, MaxCol: integer): string;
   end;
 
@@ -153,13 +156,38 @@ begin
 end;
 
 function TGoogleAPI.CreateWorksheet(AFileID, AWorksheetName: string; ARowCount,
-  AColCount: integer): string;
+  AColCount: integer): TWorksheet;
+var
+  sl: TStringList;
+  JSONObject: TJSONObject;
+  entry: TJSONObject;
 begin
+  Result.Clear;
+  ClearRESTConnector;
 
+  SRESTRequest.Method:=rmPOST;
+  SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full?alt=json';
+//  SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST); -- it cant do that in POST!
+
+//  SRESTRequest.AddBody('{"title": "GGGFFF", "gs$colCount": "10", "gs$rowCount": "1000"}', TRESTContentType.ctAPPLICATION_JSON);
+  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
+ ' <title>' + AWorksheetName + '</title>  '+
+ ' <gs:rowCount>' + IntToStr(AColCount) + '</gs:rowCount> '+
+ ' <gs:colCount>' + IntToStr(ARowCount) + '</gs:colCount> '+
+    '</entry>', TRESTContentType.ctAPPLICATION_ATOM_XML);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+    entry := JSONObject.GetValue('entry') as TJSONObject;
+    if not Assigned(entry) then exit;
+    Result := ExtractWorksheetMetadata(entry);
+  end;
 end;
 
 function TGoogleAPI.EditWorksheetParams(AFileID, AWorksheetID,
-  AWorksheetName: string; ARowCount, AColCount: integer): string;
+  AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
 begin
 
 end;
@@ -173,6 +201,40 @@ function TGoogleAPI.GetCells(AFileID: string; MinRow, MaxRow, MinCol,
   MaxCol: integer): string;
 begin
 
+end;
+
+function TGoogleAPI.ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
+var
+  s: string;
+  linklist: TJSONArray;
+  j: Integer;
+  link: TJSONObject;
+begin
+  Result.Clear;
+
+  Result.Title := GetSpValue(spreadsheet.Get('title').JsonValue);
+  s := ReverseString(GetSpValue(spreadsheet.Get('id').JsonValue));
+  Result.Id := ReverseString(Copy(s, 1, pos('/', s) - 1));
+  Result.ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$colCount').JsonValue), 0);
+  Result.ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$rowCount').JsonValue), 0);
+
+  s := '';
+  linklist := spreadsheet.GetValue('link') as TJSONArray;
+  if Assigned(linklist) then
+    for j := 0 to linklist.Count - 1 do
+    begin
+      link := linklist.Items[j] as TJSONObject;
+      if not Assigned(link) then continue;
+
+      if (link.GetValue('rel').ToString = 'edit') or (link.GetValue('rel').ToString = '"edit"') then
+      begin
+        s := link.GetValue('href').ToString;
+        break;
+      end;
+    end;
+
+  s := ReverseString(s);
+  Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
 end;
 
 function TGoogleAPI.GetDirectoryID(AParent, ADirName: string): string;
@@ -271,20 +333,16 @@ end;
 function TGoogleAPI.GetWorksheetList(AFileID: string): TWorksheets;
 var
   JSONObject,
-  spreadsheet,
-  link: TJSONObject;
-  linklist,
+  spreadsheet: TJSONObject;
   entry: TJSONArray;
-  sl: TStringList;
-  i,
-  j: integer;
-  s: string;
+//  sl: TStringList;
+  i: integer;
 begin
   SetLength(Result, 0);
   ClearRESTConnector;
 
   SRESTRequest.Method:=rmGET;
-  SRESTRequest.Resource:='worksheets/' + AFileID + '/private/full';
+  SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full';
   SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
   SRESTRequest.Execute;
   if Assigned(SRESTRequest.Response.JSONValue) then
@@ -293,9 +351,9 @@ begin
 
     entry := (JSONObject.GetValue('feed') as TJSONObject).GetValue('entry') as TJSONArray;
 
-    sl := TStringList.Create;
+{    sl := TStringList.Create;
     sl.Text := entry.ToString;
-    sl.SaveToFile('d:\2.txt');
+    sl.SaveToFile('d:\2.txt');              }
 
     for i := 0 to entry.Count - 1 do
     begin
@@ -303,27 +361,7 @@ begin
       if not Assigned(spreadsheet) then continue;
 
       SetLength(Result, length(Result) + 1);
-      Result[length(Result)-1].Title := GetSpValue(spreadsheet.Get('title').JsonValue);
-      s := ReverseString(GetSpValue(spreadsheet.Get('id').JsonValue));
-      Result[length(Result)-1].Id := ReverseString(Copy(s, 1, pos('/', s) - 1));
-      Result[length(Result)-1].ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$colCount').JsonValue), 0);
-      Result[length(Result)-1].ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$rowCount').JsonValue), 0);
-
-      s := '';
-      linklist := spreadsheet.GetValue('link') as TJSONArray;
-      if Assigned(linklist) then
-        for j := 0 to linklist.Count - 1 do
-        begin
-          link := linklist.Items[j] as TJSONObject;
-          if not Assigned(link) then continue;
-          if (link.GetValue('rel').ToString = 'edit') or (link.GetValue('rel').ToString = '"edit"') then
-          begin
-            s := link.GetValue('href').ToString;
-            break;
-          end;
-        end;
-      s := ReverseString(s);
-      Result[length(Result)-1].EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
+      Result[length(Result) - 1] := ExtractWorksheetMetadata(spreadsheet);
     end;
   end;
 end;
@@ -351,11 +389,26 @@ begin
   RESTRequest.ResetToDefaults;
   RESTRequest.Params.Clear;
   RESTRequest.ClearBody;
+
+  SRESTRequest.ResetToDefaults;
+  SRESTRequest.Params.Clear;
+  SRESTRequest.ClearBody;
 end;
 
 function TGoogleAPI.isDirectoryExist(AParent, ADirName: string): boolean;
 begin
   Result := GetDirectoryID(AParent, ADirName) <> '';
+end;
+
+{ TWorksheet }
+
+procedure TWorksheet.Clear;
+begin
+  Title := '';
+  Id := '';
+  EditTag := '';
+  ColCount := 0;
+  RowCount := 0;
 end;
 
 end.
