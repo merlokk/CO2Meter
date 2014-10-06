@@ -4,18 +4,20 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, REST.Types, System.JSON, System.AnsiStrings,
-  REST.Authenticator.OAuth.WebForm.Win, Vcl.StdCtrls, Vcl.Buttons, IPPeerClient,
-  REST.Client, Data.Bind.Components, Data.Bind.ObjectScope,
-  REST.Authenticator.OAuth, GoogleSender, def;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.AnsiStrings,
+  REST.Authenticator.OAuth.WebForm.Win, Vcl.StdCtrls, Vcl.Buttons,
+  MainExecutor, GoogleSender, def;
 
 type
   TForm1 = class(TForm)
     Memo1: TMemo;
     BitBtn2: TBitBtn;
+    Button1: TButton;
     procedure BitBtn2Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
+    ex: TMainExecutor;
   public
     { Public declarations }
   end;
@@ -44,5 +46,11 @@ begin
   sn.SendData(mes);
 end;
 
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  ex := TMainExecutor.Create;
+  ex.WorkCycle;
+end;
 
 end.

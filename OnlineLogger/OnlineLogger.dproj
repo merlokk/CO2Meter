@@ -87,10 +87,13 @@
             <Form>Form1</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="..\CO2Meter.pas"/>
         <DCCReference Include="GoogleAPI.pas"/>
         <DCCReference Include="def.pas"/>
         <DCCReference Include="GoogleSender.pas"/>
+        <DCCReference Include="..\CO2Meter.pas"/>
+        <DCCReference Include="CO2MeterConnector.pas"/>
+        <DCCReference Include="MainExecutor.pas"/>
+        <DCCReference Include="LocalStorage.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

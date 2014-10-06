@@ -31,4 +31,13 @@ object Form1: TForm1
     TabOrder = 1
     OnClick = BitBtn2Click
   end
+  object Button1: TButton
+    Left = 104
+    Top = 16
+    Width = 75
+    Height = 25
+    Caption = 'exec'
+    TabOrder = 2
+    OnClick = Button1Click
+  end
 end

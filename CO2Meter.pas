@@ -26,6 +26,7 @@ type
 
     procedure CheckResponse(r: string; CmdClass: Char);
     procedure ParseGetMemoryStat(res: string; var SamplesCount: Cardinal; var SamplesRate: Cardinal; var SamplesStartDate: TDateTime);
+    function GetConnected: boolean;
   public
     constructor Create;
     destructor Destroy; override;
@@ -42,6 +43,8 @@ type
     procedure SetDateTime(DT: TDateTime);
     procedure SetId(Id: string);
     procedure SetSamplingRate(SamplesRate: cardinal);
+
+    property Connected: boolean read GetConnected;
   end;
 
 implementation
@@ -73,6 +76,11 @@ begin
   FPort.Free;
 
   inherited
+end;
+
+function TCO2Meter.GetConnected: boolean;
+begin
+  Result := FPort.Connected;
 end;
 
 procedure TCO2Meter.GetCurrentMeasurement(var Temperature: real;
