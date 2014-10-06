@@ -30,6 +30,7 @@ var
   fileID: string;
   ws: TWorksheets;
   wst: TWorksheet;
+  cls: TGCells;
   wsID: string;
   i: integer;
   s: string;
@@ -68,7 +69,7 @@ begin
 
     if wst.Id <> '' then
     begin
-      s := FAPI.GetCells(wst.Id, 1, 1, 1, 4);
+      cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 4);
       if s = '' then
         wst := FAPI.EditWorksheetParams(fileID, wst.Id, wst.EditTag, 'CO2Data', 1000, 10);
     end;
@@ -79,8 +80,8 @@ begin
     wst := FAPI.CreateWorksheet(fileID, 'CO2Data', 1000, 10);
 
   // get worksheet header
-  if wst.Id <> '' then exit;
-    s := FAPI.GetCells(wst.Id, 1, 1, 1, 4);
+  if wst.Id = '' then exit;
+  cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 4);
 
   // if header is empty - save the new one
   if s = '' then

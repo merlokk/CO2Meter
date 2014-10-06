@@ -3,7 +3,7 @@ unit GoogleAPI;
 interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, XMLIntf, XMLDoc, System.AnsiStrings,
+  Dialogs, StdCtrls, XMLIntf, XMLDoc, StrUtils, System.AnsiStrings,
   REST.Types, System.JSON, IPPeerClient,
   REST.Authenticator.OAuth, REST.Authenticator.OAuth.WebForm.Win,
   REST.Client, Data.Bind.Components, Data.Bind.ObjectScope;
@@ -19,6 +19,19 @@ type
     procedure Clear;
   end;
   TWorksheets = array of TWorksheet;
+
+  TGCell = packed record
+    Id,
+    Title,
+    InputValue,
+    Value,
+    EditTag: string;
+    Col,
+    Row: integer;
+
+    procedure Clear;
+  end;
+  TGCells = array of TGCell;
 
   TGoogleAPI = class
   private
@@ -39,7 +52,9 @@ type
     procedure ClearRESTConnector;
 
     function GetSpValue(val: TJSONValue): string;
+    function ExtractFromQuotes(s: string): string;
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
+    function ExtractCellMetadata(cell: TJSONObject): TGCell;
   public
     constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
 
@@ -56,7 +71,7 @@ type
     function GetWorksheetList(AFileID: string): TWorksheets;
     function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
     function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetVersion, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
-    function GetCells(AFileID: string; MinRow, MaxRow, MinCol, MaxCol: integer): string;
+    function GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AMinCol, AMaxCol: integer): TGCells;
   end;
 
 implementation
@@ -158,7 +173,6 @@ end;
 function TGoogleAPI.CreateWorksheet(AFileID, AWorksheetName: string; ARowCount,
   AColCount: integer): TWorksheet;
 var
-  sl: TStringList;
   JSONObject: TJSONObject;
   entry: TJSONObject;
 begin
@@ -191,7 +205,6 @@ end;
 function TGoogleAPI.EditWorksheetParams(AFileID, AWorksheetID, AWorksheetVersion,
   AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
 var
-  sl: TStringList;
   JSONObject: TJSONObject;
   entry: TJSONObject;
 begin
@@ -203,7 +216,6 @@ begin
 
   SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
     ' <title>' + AWorksheetName + '</title>  '+
-//    '<category scheme="http://schemas.google.com/spreadsheets/2006" term="http://schemas.google.com/spreadsheets/2006#worksheet"/>' +
     ' <gs:rowCount>' + IntToStr(ARowCount) + '</gs:rowCount> '+
     ' <gs:colCount>' + IntToStr(AColCount) + '</gs:colCount> '+
     '</entry>', TRESTContentType.ctAPPLICATION_ATOM_XML);
@@ -223,10 +235,88 @@ begin
   Result := OAuth2Authenticator.AccessToken <> '';
 end;
 
-function TGoogleAPI.GetCells(AFileID: string; MinRow, MaxRow, MinCol,
-  MaxCol: integer): string;
+function TGoogleAPI.GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AMinCol,
+  AMaxCol: integer): TGCells;
+var
+  JSONObject,
+  item: TJSONObject;
+  entry: TJSONArray;
+  i: integer;
 begin
+  SetLength(Result, 0);
+  ClearRESTConnector;
 
+  SRESTRequest.Method:=rmGET;
+  SRESTRequest.Resource:='/cells/' + AFileID + '/' + AWorksheetID + '/private/full';
+  SRESTRequest.Params.AddItem('min-row', IntToStr(AMinRow), pkGETorPOST);
+  SRESTRequest.Params.AddItem('max-row', IntToStr(AMaxRow), pkGETorPOST);
+  SRESTRequest.Params.AddItem('min-col', IntToStr(AMinCol), pkGETorPOST);
+  SRESTRequest.Params.AddItem('max-col', IntToStr(AMaxCol), pkGETorPOST);
+  SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+    entry := (JSONObject.GetValue('feed') as TJSONObject).GetValue('entry') as TJSONArray;
+    for i := 0 to entry.Count - 1 do
+    begin
+      item := entry.Items[i] as TJSONObject;
+      if not Assigned(item) then continue;
+
+      SetLength(Result, length(Result) + 1);
+      Result[length(Result) - 1] := ExtractCellMetadata(item);
+    end;
+  end;
+end;
+
+function TGoogleAPI.ExtractCellMetadata(cell: TJSONObject): TGCell;
+var
+  s: string;
+  linklist: TJSONArray;
+  j: Integer;
+  gscell,
+  link: TJSONObject;
+begin
+  Result.Clear;
+
+  Result.Title := GetSpValue(cell.Get('title').JsonValue);
+  s := ReverseString(GetSpValue(cell.Get('id').JsonValue));
+  Result.Id := ReverseString(Copy(s, 1, pos('/', s) - 1));
+
+  gscell := cell.Get('gs$cell').JsonValue as TJSONObject;
+  if Assigned(gscell) then
+  begin
+    Result.InputValue := ExtractFromQuotes(gscell.Get('inputValue').JsonValue.ToString);
+    Result.Value := ExtractFromQuotes(gscell.Get('$t').JsonValue.ToString);
+    Result.Col := StrToIntDef(ExtractFromQuotes(gscell.Get('col').JsonValue.ToString), 0);
+    Result.Row := StrToIntDef(ExtractFromQuotes(gscell.Get('row').JsonValue.ToString), 0);
+  end;
+
+  s := '';
+  linklist := cell.GetValue('link') as TJSONArray;
+  if Assigned(linklist) then
+    for j := 0 to linklist.Count - 1 do
+    begin
+      link := linklist.Items[j] as TJSONObject;
+      if not Assigned(link) then continue;
+
+      if (link.GetValue('rel').ToString = 'edit') or (link.GetValue('rel').ToString = '"edit"') then
+      begin
+        s := link.GetValue('href').ToString;
+        break;
+      end;
+    end;
+
+  s := ExtractFromQuotes(ReverseString(s));
+  Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
+end;
+
+function TGoogleAPI.ExtractFromQuotes(s: string): string;
+begin
+  if (length(s) > 1) and (s[1] = '"') then s := Copy(s, 2, length(s));
+  if (length(s) > 1) and (s[length(s)] = '"') then s := Copy(s, 1, length(s) - 1);
+  Result := s;
 end;
 
 function TGoogleAPI.ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
@@ -242,7 +332,7 @@ begin
   s := ReverseString(GetSpValue(spreadsheet.Get('id').JsonValue));
   Result.Id := ReverseString(Copy(s, 1, pos('/', s) - 1));
   Result.ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$colCount').JsonValue), 0);
-  Result.ColCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$rowCount').JsonValue), 0);
+  Result.RowCount := StrToIntDef(GetSpValue(spreadsheet.Get('gs$rowCount').JsonValue), 0);
 
   s := '';
   linklist := spreadsheet.GetValue('link') as TJSONArray;
@@ -259,8 +349,7 @@ begin
       end;
     end;
 
-  s := ReverseString(s);
-  if s[1] = '"' then s := Copy(s, 2, length(s));
+  s := ExtractFromQuotes(ReverseString(s));
   Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
 end;
 
@@ -352,9 +441,7 @@ begin
   obj := val as TJSONObject;
   if not Assigned(obj) then exit;
 
-  Result := obj.GetValue('$t').ToString;
-  if (length(Result) > 1) and (Result[1] = '"') then Result := Copy(Result, 2, length(Result));
-  if (length(Result) > 1) and (Result[length(Result)] = '"') then Result := Copy(Result, 1, length(Result) - 1);
+  Result := ExtractFromQuotes(obj.GetValue('$t').ToString);
 end;
 
 function TGoogleAPI.GetWorksheetList(AFileID: string): TWorksheets;
@@ -362,7 +449,6 @@ var
   JSONObject,
   spreadsheet: TJSONObject;
   entry: TJSONArray;
-//  sl: TStringList;
   i: integer;
 begin
   SetLength(Result, 0);
@@ -377,11 +463,6 @@ begin
     JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
 
     entry := (JSONObject.GetValue('feed') as TJSONObject).GetValue('entry') as TJSONArray;
-
-{    sl := TStringList.Create;
-    sl.Text := entry.ToString;
-    sl.SaveToFile('d:\2.txt');              }
-
     for i := 0 to entry.Count - 1 do
     begin
       spreadsheet := entry.Items[i] as TJSONObject;
@@ -436,6 +517,19 @@ begin
   EditTag := '';
   ColCount := 0;
   RowCount := 0;
+end;
+
+{ TGCell }
+
+procedure TGCell.Clear;
+begin
+  Id := '';
+  Title := '';
+  InputValue := '';
+  Value := '';
+  EditTag := '';
+  Col := 0;
+  Row := 0;
 end;
 
 end.
