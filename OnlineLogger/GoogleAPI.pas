@@ -6,7 +6,7 @@ uses
   Dialogs, StdCtrls, XMLIntf, XMLDoc, StrUtils, System.AnsiStrings,
   REST.Types, System.JSON, IPPeerClient,
   REST.Authenticator.OAuth, REST.Authenticator.OAuth.WebForm.Win,
-  REST.Client, Data.Bind.Components, Data.Bind.ObjectScope;
+  REST.Client, Data.Bind.Components, Data.Bind.ObjectScope, def;
 
 type
   TWorksheet = packed record
@@ -56,6 +56,7 @@ type
     function ExtractFromQuotes(s: string): string;
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
+    function ExtractMeasurement(cell: TJSONObject): TMeasurementRec;
   public
     constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
 
@@ -75,6 +76,9 @@ type
     function GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AMinCol, AMaxCol: integer): TGCells;
     function SetCell(AFileID, AWorksheetID: string; ACell: TGCell): TGCell;
     function SetCells(AFileID, AWorksheetID: string; ACells: TGCells): TGCells;
+
+    function GetListRow(AFileID, AWorksheetID, AQuery: string): TMeasurementRec;
+    function AddListRow(AFileID, AWorksheetID: string; AMes: TMeasurementRec): TMeasurementRec;
 
     function GetCellValue(ACells: TGCells; ARow, ACol: integer): string;
     procedure SetCellValue(var ACells: TGCells; ARow, ACol: integer; AInputValue: string);
@@ -343,6 +347,44 @@ begin
   Result := s;
 end;
 
+function TGoogleAPI.ExtractMeasurement(cell: TJSONObject): TMeasurementRec;
+var
+  s: string;
+  linklist: TJSONArray;
+  j: Integer;
+  link: TJSONObject;
+begin
+  Result.Clear;
+
+  s := ReverseString(GetSpValue(cell.Get('id').JsonValue));
+  Result.Id := ReverseString(Copy(s, 1, pos('/', s) - 1));
+  Result.Date := StrToDateTimeDef(GetSpValue(cell.Get('gsx$date').JsonValue), 0);
+  Result.InternalDate := StrToIntDef(GetSpValue(cell.Get('gsx$internaldate').JsonValue), 0);
+  s := ReplaceStr(GetSpValue(cell.Get('gsx$temperature').JsonValue), ',', FormatSettings.DecimalSeparator);
+  Result.Temperature := StrToFloatDef(s, 0);
+  s := ReplaceStr(GetSpValue(cell.Get('gsx$humidity').JsonValue), ',', FormatSettings.DecimalSeparator);
+  Result.Humidity := StrToFloatDef(s, 0);
+  Result.CO2Level := StrToIntDef(GetSpValue(cell.Get('gsx$co2level').JsonValue), 0);
+
+  s := '';
+  linklist := cell.GetValue('link') as TJSONArray;
+  if Assigned(linklist) then
+    for j := 0 to linklist.Count - 1 do
+    begin
+      link := linklist.Items[j] as TJSONObject;
+      if not Assigned(link) then continue;
+
+      if (link.GetValue('rel').ToString = 'edit') or (link.GetValue('rel').ToString = '"edit"') then
+      begin
+        s := link.GetValue('href').ToString;
+        break;
+      end;
+    end;
+
+  s := ExtractFromQuotes(ReverseString(s));
+  Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
+end;
+
 function TGoogleAPI.ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
 var
   s: string;
@@ -456,6 +498,12 @@ begin
 
 end;
 
+function TGoogleAPI.GetListRow(AFileID, AWorksheetID,
+  AQuery: string): TMeasurementRec;
+begin
+
+end;
+
 function TGoogleAPI.GetSpValue(val: TJSONValue): string;
 var
   obj: TJSONObject;
@@ -495,6 +543,37 @@ begin
       SetLength(Result, length(Result) + 1);
       Result[length(Result) - 1] := ExtractWorksheetMetadata(spreadsheet);
     end;
+  end;
+end;
+
+function TGoogleAPI.AddListRow(AFileID, AWorksheetID: string;
+  AMes: TMeasurementRec): TMeasurementRec;
+var
+  JSONObject: TJSONObject;
+  entry: TJSONObject;
+begin
+  Result.Clear;
+  ClearRESTConnector;
+
+  SRESTRequest.Method:=rmPOST;
+  SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
+
+  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
+    ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
+    ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
+    ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
+    ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
+    ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
+    '</entry>',
+    TRESTContentType.ctAPPLICATION_ATOM_XML);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+    entry := JSONObject.GetValue('entry') as TJSONObject;
+    if not Assigned(entry) then exit;
+    Result := ExtractMeasurement(entry);
   end;
 end;
 

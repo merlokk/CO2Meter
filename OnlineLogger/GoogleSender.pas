@@ -94,6 +94,7 @@ begin
     FAPI.SetCells(fileID, wst.Id, cls);
   end;
 
+  FAPI.AddListRow(fileID, wst.Id, AMeasurements[0]);
 end;
 
 end.
