@@ -5,7 +5,7 @@ uses
   SysUtils, Variants, System.AnsiStrings;
 
 type
-  TMeasurementRec = packed record
+  TMeasurement = packed record
     Id,
     EditTag: string;
 
@@ -18,13 +18,13 @@ type
     procedure Clear;
   end;
 
-  TMeasurements = array of TMeasurementRec;
+  TMeasurements = array of TMeasurement;
 
 implementation
 
 { TMeasurementRec }
 
-procedure TMeasurementRec.Clear;
+procedure TMeasurement.Clear;
 begin
   Id := '';
   EditTag := '';

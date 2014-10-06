@@ -56,7 +56,7 @@ type
     function ExtractFromQuotes(s: string): string;
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
-    function ExtractMeasurement(cell: TJSONObject): TMeasurementRec;
+    function ExtractMeasurement(cell: TJSONObject): TMeasurement;
   public
     constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
 
@@ -77,8 +77,8 @@ type
     function SetCell(AFileID, AWorksheetID: string; ACell: TGCell): TGCell;
     function SetCells(AFileID, AWorksheetID: string; ACells: TGCells): TGCells;
 
-    function GetListRow(AFileID, AWorksheetID, AQuery: string): TMeasurementRec;
-    function AddListRow(AFileID, AWorksheetID: string; AMes: TMeasurementRec): TMeasurementRec;
+    function GetListRow(AFileID, AWorksheetID, AQuery: string): TMeasurements;
+    function AddListRow(AFileID, AWorksheetID: string; AMes: TMeasurement): TMeasurement;
 
     function GetCellValue(ACells: TGCells; ARow, ACol: integer): string;
     procedure SetCellValue(var ACells: TGCells; ARow, ACol: integer; AInputValue: string);
@@ -347,7 +347,7 @@ begin
   Result := s;
 end;
 
-function TGoogleAPI.ExtractMeasurement(cell: TJSONObject): TMeasurementRec;
+function TGoogleAPI.ExtractMeasurement(cell: TJSONObject): TMeasurement;
 var
   s: string;
   linklist: TJSONArray;
@@ -499,9 +499,40 @@ begin
 end;
 
 function TGoogleAPI.GetListRow(AFileID, AWorksheetID,
-  AQuery: string): TMeasurementRec;
+  AQuery: string): TMeasurements;
+var
+  JSONObject: TJSONObject;
+  feed,
+  item: TJSONObject;
+  entry: TJSONArray;
+  i: integer;
 begin
+  SetLength(Result, 0);
+  ClearRESTConnector;
 
+  SRESTRequest.Method:=rmGET;
+  SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full';
+  if AQuery <> '' then SRESTRequest.Params.AddItem('sq', AQuery, pkGETorPOST);
+  SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+    feed := JSONObject.GetValue('feed') as TJSONObject;
+    if not Assigned(feed) then exit;    
+    entry := feed.GetValue('entry') as TJSONArray;
+    if not Assigned(entry) then exit;    
+    
+    for i := 0 to entry.Count - 1 do
+    begin
+      item := entry.Items[i] as TJSONObject;
+      if not Assigned(item) then continue;
+
+      SetLength(Result, length(Result) + 1);
+      Result[length(Result) - 1] := ExtractMeasurement(item);
+    end;
+  end;
 end;
 
 function TGoogleAPI.GetSpValue(val: TJSONValue): string;
@@ -547,7 +578,7 @@ begin
 end;
 
 function TGoogleAPI.AddListRow(AFileID, AWorksheetID: string;
-  AMes: TMeasurementRec): TMeasurementRec;
+  AMes: TMeasurement): TMeasurement;
 var
   JSONObject: TJSONObject;
   entry: TJSONObject;

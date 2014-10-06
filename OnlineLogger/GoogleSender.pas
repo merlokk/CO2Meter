@@ -33,6 +33,8 @@ var
   cls: TGCells;
   wsID: string;
   i: integer;
+  me: TMeasurement;
+  mes: TMeasurements;
 begin
   // get file directory
   dirID := FAPI.GetDirectoryID('root', 'CO2Meter');
@@ -94,7 +96,13 @@ begin
     FAPI.SetCells(fileID, wst.Id, cls);
   end;
 
-  FAPI.AddListRow(fileID, wst.Id, AMeasurements[0]);
+  // works with data
+  for i := 0 to length(AMeasurements) - 1 do
+  begin
+    mes := FAPI.GetListRow(fileID, wst.Id, 'internaldate=' + IntToStr(AMeasurements[i].InternalDate));
+    if length(mes) = 0 then
+      me := FAPI.AddListRow(fileID, wst.Id, AMeasurements[i]);
+  end;
 end;
 
 end.

@@ -33,7 +33,14 @@ var
  mes: TMeasurements;
 begin
   sn := TGoogleSender.Create(Self,
+   '945613708754-lh8napt9tngjkslvq49nlm2foivl021s.apps.googleusercontent.com', 'joitopSs5kn2ZZ50vkSUFiAQ');
 
+  SetLength(mes, 1);
+  mes[0].Date := now;
+  mes[0].InternalDate := 111;
+  mes[0].Temperature := 10;
+  mes[0].Humidity := 20;
+  mes[0].CO2Level := 2000;
   sn.SendData(mes);
 end;
 
