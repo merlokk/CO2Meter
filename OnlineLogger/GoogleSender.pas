@@ -33,7 +33,6 @@ var
   cls: TGCells;
   wsID: string;
   i: integer;
-  s: string;
 begin
   // get file directory
   dirID := FAPI.GetDirectoryID('root', 'CO2Meter');
@@ -69,8 +68,8 @@ begin
 
     if wst.Id <> '' then
     begin
-      cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 4);
-      if s = '' then
+      cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 5);
+      if FAPI.GetCellValue(cls, 1, 1) = '' then
         wst := FAPI.EditWorksheetParams(fileID, wst.Id, wst.EditTag, 'CO2Data', 1000, 10);
     end;
   end;
@@ -81,11 +80,19 @@ begin
 
   // get worksheet header
   if wst.Id = '' then exit;
-  cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 4);
+  cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 5);
 
   // if header is empty - save the new one
-  if s = '' then
-//    FAPI.SetCells(wst.Id, 1, 1, 1, 4, 'Date, DateInt, Temperature, Humidity, CO2Level');
+  if FAPI.GetCellValue(cls, 1, 1) = '' then
+  begin
+    FAPI.SetCellValue(cls, 1, 1, 'Date');
+    FAPI.SetCellValue(cls, 1, 2, 'InternalDate');
+    FAPI.SetCellValue(cls, 1, 3, 'Temperature');
+    FAPI.SetCellValue(cls, 1, 4, 'Humidity');
+    FAPI.SetCellValue(cls, 1, 5, 'CO2Level');
+
+    FAPI.SetCells(fileID, wst.Id, cls);
+  end;
 
 end;
 

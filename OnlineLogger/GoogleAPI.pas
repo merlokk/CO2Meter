@@ -30,6 +30,7 @@ type
     Row: integer;
 
     procedure Clear;
+    function GetUrlEditTag: string;
   end;
   TGCells = array of TGCell;
 
@@ -72,6 +73,11 @@ type
     function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
     function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetVersion, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
     function GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AMinCol, AMaxCol: integer): TGCells;
+    function SetCell(AFileID, AWorksheetID: string; ACell: TGCell): TGCell;
+    function SetCells(AFileID, AWorksheetID: string; ACells: TGCells): TGCells;
+
+    function GetCellValue(ACells: TGCells; ARow, ACol: integer): string;
+    procedure SetCellValue(var ACells: TGCells; ARow, ACol: integer; AInputValue: string);
   end;
 
 implementation
@@ -239,6 +245,7 @@ function TGoogleAPI.GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AM
   AMaxCol: integer): TGCells;
 var
   JSONObject,
+  feed,
   item: TJSONObject;
   entry: TJSONArray;
   i: integer;
@@ -258,7 +265,11 @@ begin
   begin
     JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
 
-    entry := (JSONObject.GetValue('feed') as TJSONObject).GetValue('entry') as TJSONArray;
+    feed := JSONObject.GetValue('feed') as TJSONObject;
+    if not Assigned(feed) then exit;    
+    entry := feed.GetValue('entry') as TJSONArray;
+    if not Assigned(entry) then exit;    
+    
     for i := 0 to entry.Count - 1 do
     begin
       item := entry.Items[i] as TJSONObject;
@@ -268,6 +279,19 @@ begin
       Result[length(Result) - 1] := ExtractCellMetadata(item);
     end;
   end;
+end;
+
+function TGoogleAPI.GetCellValue(ACells: TGCells; ARow, ACol: integer): string;
+var
+  i: Integer;
+begin
+  Result := '';
+  for i := 0 to length(ACells) - 1 do
+    if (ACells[i].Row = ARow) and (ACells[i].Col = ACol) then
+    begin
+      Result := ACells[i].Value;
+      break;
+    end;
 end;
 
 function TGoogleAPI.ExtractCellMetadata(cell: TJSONObject): TGCell;
@@ -508,6 +532,70 @@ begin
   Result := GetDirectoryID(AParent, ADirName) <> '';
 end;
 
+function TGoogleAPI.SetCell(AFileID, AWorksheetID: string;
+  ACell: TGCell): TGCell;
+var
+  JSONObject: TJSONObject;
+  entry: TJSONObject;
+  TryCount: integer;
+begin
+  TryCount := 0;
+
+  repeat
+    TryCount := TryCount + 1;
+    Result.Clear;
+    ClearRESTConnector;
+
+    SRESTRequest.Method:=rmPUT;
+    SRESTRequest.Resource:='/cells/' + AFileID + '/' + AWorksheetID + '/private/full/' + ACell.Id + '/' + ACell.GetUrlEditTag + '?alt=json';
+
+    SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
+      ' <gs:cell row="' + IntToStr(ACell.Row) + '" col="' + IntToStr(ACell.Col) + '" inputValue="' + ACell.InputValue + '"' + ' />' +
+      '</entry>',
+      TRESTContentType.ctAPPLICATION_ATOM_XML);
+    SRESTRequest.Execute;
+    if Assigned(SRESTRequest.Response.JSONValue) then
+    begin
+      JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+      entry := JSONObject.GetValue('entry') as TJSONObject;
+      if not Assigned(entry) then exit;
+      Result := ExtractCellMetadata(entry);
+    end;
+
+    if SRESTRequest.Response.StatusCode = 409 then ACell.EditTag := Result.EditTag;
+  until (TryCount > 1) or (SRESTRequest.Response.StatusCode <> 409);
+end;
+
+function TGoogleAPI.SetCells(AFileID, AWorksheetID: string;
+  ACells: TGCells): TGCells;
+var
+  i: Integer;
+begin
+  SetLength(Result, length(ACells));
+  for i := 0 to length(ACells) - 1 do
+    Result [i] := SetCell(AFileID, AWorksheetID, ACells[i])
+end;
+
+procedure TGoogleAPI.SetCellValue(var ACells: TGCells; ARow, ACol: integer;
+  AInputValue: string);
+var
+  i: Integer;
+begin
+  for i := 0 to length(ACells) - 1 do
+    if (ACells[i].Row = ARow) and (ACells[i].Col = ACol) then
+    begin
+      ACells[i].InputValue := AInputValue;
+      exit;
+    end;
+
+  SetLength(ACells, length(ACells) + 1);
+  ACells[length(ACells) - 1].Id := 'R' + IntToStr(ARow) + 'C' + IntToStr(ACol);
+  ACells[length(ACells) - 1].InputValue := AInputValue;
+  ACells[length(ACells) - 1].Row := ARow;
+  ACells[length(ACells) - 1].Col := ACol;
+end;
+
 { TWorksheet }
 
 procedure TWorksheet.Clear;
@@ -530,6 +618,12 @@ begin
   EditTag := '';
   Col := 0;
   Row := 0;
+end;
+
+function TGCell.GetUrlEditTag: string;
+begin
+  Result := EditTag;
+  if Result = '' then Result := '0';
 end;
 
 end.
