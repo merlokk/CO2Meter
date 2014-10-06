@@ -70,12 +70,12 @@ begin
     begin
       s := FAPI.GetCells(wst.Id, 1, 1, 1, 4);
       if s = '' then
-        wst := FAPI.EditWorksheetParams(fileID, wst.Id, 'CO2Data', 1000, 10);
+        wst := FAPI.EditWorksheetParams(fileID, wst.Id, wst.EditTag, 'CO2Data', 1000, 10);
     end;
   end;
 
   // if we cant do anything with default sheet - create our worksheet into file
-  if wst.Id = '' then
+  if (wst.Id = '') or (wst.Title <> 'CO2Data') then
     wst := FAPI.CreateWorksheet(fileID, 'CO2Data', 1000, 10);
 
   // get worksheet header

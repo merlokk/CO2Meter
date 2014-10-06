@@ -55,7 +55,7 @@ type
 
     function GetWorksheetList(AFileID: string): TWorksheets;
     function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
-    function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
+    function EditWorksheetParams(AFileID, AWorksheetID, AWorksheetVersion, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
     function GetCells(AFileID: string; MinRow, MaxRow, MinCol, MaxCol: integer): string;
   end;
 
@@ -169,12 +169,14 @@ begin
   SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full?alt=json';
 //  SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST); -- it cant do that in POST!
 
-//  SRESTRequest.AddBody('{"title": "GGGFFF", "gs$colCount": "10", "gs$rowCount": "1000"}', TRESTContentType.ctAPPLICATION_JSON);
-  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
- ' <title>' + AWorksheetName + '</title>  '+
- ' <gs:rowCount>' + IntToStr(AColCount) + '</gs:rowCount> '+
- ' <gs:colCount>' + IntToStr(ARowCount) + '</gs:colCount> '+
-    '</entry>', TRESTContentType.ctAPPLICATION_ATOM_XML);
+  SRESTRequest.AddBody('{"entry": {"title": {	"type": "text",	"$t": "Expenses"}, "gs$colCount": {"$t": "10"},"gs$rowCount": {	"$t": "50"} }}',
+ TRESTContentType.ctAPPLICATION_JSON);
+{  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
+    ' <title>' + AWorksheetName + '</title>' +
+    ' <gs:rowCount>' + IntToStr(ARowCount) + '</gs:rowCount>' +
+    ' <gs:colCount>' + IntToStr(AColCount) + '</gs:colCount>' +
+    '</entry>',
+    TRESTContentType.ctAPPLICATION_ATOM_XML);  }
   SRESTRequest.Execute;
   if Assigned(SRESTRequest.Response.JSONValue) then
   begin
@@ -186,10 +188,34 @@ begin
   end;
 end;
 
-function TGoogleAPI.EditWorksheetParams(AFileID, AWorksheetID,
+function TGoogleAPI.EditWorksheetParams(AFileID, AWorksheetID, AWorksheetVersion,
   AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
+var
+  sl: TStringList;
+  JSONObject: TJSONObject;
+  entry: TJSONObject;
 begin
+  Result.Clear;
+  ClearRESTConnector;
 
+  SRESTRequest.Method:=rmPUT;
+  SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full/' + AWorksheetID + '/' + AWorksheetVersion + '?alt=json';
+
+  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006"> '+
+    ' <title>' + AWorksheetName + '</title>  '+
+//    '<category scheme="http://schemas.google.com/spreadsheets/2006" term="http://schemas.google.com/spreadsheets/2006#worksheet"/>' +
+    ' <gs:rowCount>' + IntToStr(ARowCount) + '</gs:rowCount> '+
+    ' <gs:colCount>' + IntToStr(AColCount) + '</gs:colCount> '+
+    '</entry>', TRESTContentType.ctAPPLICATION_ATOM_XML);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+    entry := JSONObject.GetValue('entry') as TJSONObject;
+    if not Assigned(entry) then exit;
+    Result := ExtractWorksheetMetadata(entry);
+  end;
 end;
 
 function TGoogleAPI.GetAuthenticated: boolean;
@@ -234,6 +260,7 @@ begin
     end;
 
   s := ReverseString(s);
+  if s[1] = '"' then s := Copy(s, 2, length(s));
   Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
 end;
 
