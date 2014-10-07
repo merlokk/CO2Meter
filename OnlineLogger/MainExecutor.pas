@@ -12,40 +12,65 @@ type
     metr: TCO2MeterConnector;
     storage: TLocalStorage;
     sender: TGoogleSender;
+
+    FSender: TComponent;
   public
-    constructor Create;
+    constructor Create(ASender: TComponent);
     destructor Destroy; override;
 
+    procedure Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string);
     procedure WorkCycle;
+
+    property CO2Meter: TCO2MeterConnector read metr;
   end;
 
 implementation
 
 { TMainExecutor }
 
-constructor TMainExecutor.Create;
+constructor TMainExecutor.Create(ASender: TComponent);
 begin
-
+  FSender := ASender;
+  metr := nil;
+  storage := nil;
+  sender := nil;
 end;
 
 destructor TMainExecutor.Destroy;
 begin
+  metr.Terminate;
+  sender.Free;
+  metr.Free;
+  storage.Free;
 
   inherited;
+end;
+
+procedure TMainExecutor.Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string);
+begin
+  sender.Free;
+  if metr <> nil then metr.Terminate;
+  metr.Free;
+  storage.Free;
+
+  metr := TCO2MeterConnector.Create;
+  metr.ComPort := AComPort;
+  sender := TGoogleSender.Create(FSender, AClientID, AClientSecret);
+  storage := TLocalStorage.Create(AStoreFileName);
 end;
 
 procedure TMainExecutor.WorkCycle;
 var
   mes: TMeasurements;
 begin
-  storage.Load;
-  metr.GetData;
+//  storage.Load;
+  mes := metr.GetData;
 
-  storage.Save;
+//  storage.Save;
 
-  sender.SendData(mes);
+  if length(mes) > 0 then sender.SendData(mes);
 
-  storage.Clear;
+//  storage.Clear;
 end;
 
 end.

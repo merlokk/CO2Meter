@@ -9,8 +9,9 @@ uses
 type
   TLocalStorage = class
   private
+    FStoreFileName: string;
   public
-    constructor Create;
+    constructor Create(AStoreFileName: string);
     destructor Destroy; override;
 
     procedure Save;
@@ -28,9 +29,9 @@ begin
 
 end;
 
-constructor TLocalStorage.Create;
+constructor TLocalStorage.Create(AStoreFileName: string);
 begin
-
+  FStoreFileName := AStoreFileName;
 end;
 
 destructor TLocalStorage.Destroy;

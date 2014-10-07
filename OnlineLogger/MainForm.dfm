@@ -11,6 +11,7 @@ object Form1: TForm1
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   PixelsPerInch = 120
   TextHeight = 16
   object Memo1: TMemo
@@ -18,8 +19,6 @@ object Form1: TForm1
     Top = 72
     Width = 689
     Height = 305
-    Lines.Strings = (
-      'Memo1')
     TabOrder = 0
   end
   object BitBtn2: TBitBtn
@@ -39,5 +38,14 @@ object Form1: TForm1
     Caption = 'exec'
     TabOrder = 2
     OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 595
+    Top = 8
+    Width = 137
+    Height = 25
+    Caption = 'connector stat'
+    TabOrder = 3
+    OnClick = Button2Click
   end
 end
