@@ -22,6 +22,7 @@ type
     procedure WorkCycle;
 
     property CO2Meter: TCO2MeterConnector read metr;
+    property GoogleSender: TGoogleSender read sender;
   end;
 
 implementation

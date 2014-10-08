@@ -84,7 +84,7 @@
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
         <DCCReference Include="MainForm.pas">
-            <Form>Form1</Form>
+            <Form>MainFrm</Form>
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="GoogleAPI.pas"/>

@@ -2,7 +2,7 @@ program OnlineLogger;
 
 uses
   Vcl.Forms,
-  MainForm in 'MainForm.pas' {Form1},
+  MainForm in 'MainForm.pas' {MainFrm},
   GoogleAPI in 'GoogleAPI.pas',
   def in 'def.pas',
   GoogleSender in 'GoogleSender.pas',
@@ -16,6 +16,6 @@ uses
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
-  Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TMainFrm, MainFrm);
   Application.Run;
 end.

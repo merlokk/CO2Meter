@@ -8,9 +8,19 @@ type
   TGoogleSender = class
   private
     FAPI: TGoogleAPI;
+
+    FFileName,
+    FFileID: string;
+    FMyWorksheet: TWorksheet;
+
+    function GetFileName(AFileDate: TDateTime): string;
+
+    procedure ChangeWorkFile(FileDate: TDateTime);
+    procedure SendData1Month(AMeasurements: TMeasurements);
   public
     constructor Create(Sender: TComponent; AClientID, AClientSecret: string);
 
+    function isValidWorkFile: boolean;
     procedure SendData(AMeasurements: TMeasurements);
   end;
 
@@ -20,69 +30,115 @@ implementation
 
 constructor TGoogleSender.Create(Sender: TComponent; AClientID, AClientSecret: string);
 begin
+  FFileName := '';
+  FFileID := '';
+  FMyWorksheet.Clear;
+
   FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret);
 end;
 
-procedure TGoogleSender.SendData(AMeasurements: TMeasurements);
+function TGoogleSender.isValidWorkFile: boolean;
+begin
+  Result := (FFileName <> '') and
+    (FFileID <> '') and
+    (FMyWorksheet.Id <> '');
+end;
+
+procedure TGoogleSender.SendData1Month(AMeasurements: TMeasurements);
 var
-  dirID,
-  fileName,
-  fileID: string;
-  ws: TWorksheets;
-  wst: TWorksheet;
-  cls: TGCells;
-  wsID: string;
   i: integer;
   me: TMeasurement;
   mes: TMeasurements;
 begin
+  if length(AMeasurements) = 0 then exit;
+
+  // if we have a valid workfile links then don't refresh workfile
+  if (not isValidWorkFile) or (FFileName <> GetFileName(AMeasurements[0].Date)) then
+    ChangeWorkFile(AMeasurements[0].Date);
+
+  if not isValidWorkFile then exit;
+
+  // works with data
+  for i := 0 to length(AMeasurements) - 1 do
+  begin
+    mes := FAPI.GetListRow(FFileID, FMyWorksheet.Id, 'internaldate=' + IntToStr(AMeasurements[i].InternalDate));
+    if length(mes) = 0 then
+      me := FAPI.AddListRow(FFileID, FMyWorksheet.Id, AMeasurements[i]);
+  end;
+end;
+
+procedure TGoogleSender.SendData(AMeasurements: TMeasurements);
+begin
+  if length(AMeasurements) = 0 then exit;
+
+  // {TODO} here will be a part of working with separate months in one list!
+
+  SendData1Month(AMeasurements);
+end;
+
+function TGoogleSender.GetFileName(AFileDate: TDateTime): string;
+begin
+  Result := FormatDateTime('yyyy_mm', AFileDate);
+end;
+
+procedure TGoogleSender.ChangeWorkFile(FileDate: TDateTime);
+var
+  dirID,
+  wsID: string;
+  ws: TWorksheets;
+  cls: TGCells;
+  i: Integer;
+begin
+  // update current file name
+  FFileName := GetFileName(FileDate);
+
   // get file directory
   dirID := FAPI.GetDirectoryID('root', 'CO2Meter');
-  if dirID = '' then dirID := FAPI.CreateDirectory('root', 'CO2Meter');
+  if dirID = '' then
+    dirID := FAPI.CreateDirectory('root', 'CO2Meter');
 
   // get current file
-  fileName := FormatDateTime('yyyy_mm', Now);
-  fileID := FAPI.GetFileID(dirID, fileName);
-  if fileID = '' then fileID := FAPI.CreateFile(dirID, fileName);
+  FFileID := FAPI.GetFileID(dirID, FFileName);
+  if FFileID = '' then FFileID := FAPI.CreateFile(dirID, FFileName);
 
-  if fileID = '' then exit;
+  if FFileID = '' then exit;
 
   // get worksheet from file
   wsID := '';
-  wst.Title := '';
-  ws := FAPI.GetWorksheetList(fileID);
+  FMyWorksheet.Title := '';
+  ws := FAPI.GetWorksheetList(FFileID);
   for i := 0 to length(ws) - 1 do
-  if ws[i].Title = 'CO2Data' then
-  begin
-    wst := ws[i];
-    break;
-  end;
-
-  // if we dont have program's worksheet - try to rename Sheet1 (default sheet)
-  if wst.Id = '' then
-  begin
-    for i := 0 to length(ws) - 1 do
-    if ws[i].Title = 'Sheet1' then
+    if ws[i].Title = 'CO2Data' then
     begin
-      wst := ws[i];
+      FMyWorksheet := ws[i];
       break;
     end;
 
-    if wst.Id <> '' then
+  // if we dont have program's worksheet - try to rename Sheet1 (default sheet)
+  if FMyWorksheet.Id = '' then
+  begin
+    for i := 0 to length(ws) - 1 do
+      if ws[i].Title = 'Sheet1' then
+      begin
+        FMyWorksheet := ws[i];
+        break;
+      end;
+
+    if FMyWorksheet.Id <> '' then
     begin
-      cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 5);
+      cls := FAPI.GetCells(FFileID, FMyWorksheet.Id, 1, 1, 1, 5);
       if FAPI.GetCellValue(cls, 1, 1) = '' then
-        wst := FAPI.EditWorksheetParams(fileID, wst.Id, wst.EditTag, 'CO2Data', 1000, 10);
+        FMyWorksheet := FAPI.EditWorksheetParams(FFileID, FMyWorksheet.Id, FMyWorksheet.EditTag, 'CO2Data', 1000, 10);
     end;
   end;
 
   // if we cant do anything with default sheet - create our worksheet into file
-  if (wst.Id = '') or (wst.Title <> 'CO2Data') then
-    wst := FAPI.CreateWorksheet(fileID, 'CO2Data', 1000, 10);
+  if (FMyWorksheet.Id = '') or (FMyWorksheet.Title <> 'CO2Data') then
+    FMyWorksheet := FAPI.CreateWorksheet(FFileID, 'CO2Data', 1000, 10);
 
   // get worksheet header
-  if wst.Id = '' then exit;
-  cls := FAPI.GetCells(fileID, wst.Id, 1, 1, 1, 5);
+  if FMyWorksheet.Id = '' then exit;
+  cls := FAPI.GetCells(FFileID, FMyWorksheet.Id, 1, 1, 1, 5);
 
   // if header is empty - save the new one
   if FAPI.GetCellValue(cls, 1, 1) = '' then
@@ -92,16 +148,7 @@ begin
     FAPI.SetCellValue(cls, 1, 3, 'Temperature');
     FAPI.SetCellValue(cls, 1, 4, 'Humidity');
     FAPI.SetCellValue(cls, 1, 5, 'CO2Level');
-
-    FAPI.SetCells(fileID, wst.Id, cls);
-  end;
-
-  // works with data
-  for i := 0 to length(AMeasurements) - 1 do
-  begin
-    mes := FAPI.GetListRow(fileID, wst.Id, 'internaldate=' + IntToStr(AMeasurements[i].InternalDate));
-    if length(mes) = 0 then
-      me := FAPI.AddListRow(fileID, wst.Id, AMeasurements[i]);
+    FAPI.SetCells(FFileID, FMyWorksheet.Id, cls);
   end;
 end;
 
