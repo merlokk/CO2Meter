@@ -6,14 +6,13 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.AnsiStrings, DateUtils, IniFiles, UITypes,
   REST.Authenticator.OAuth.WebForm.Win, Vcl.StdCtrls, Vcl.Buttons,
-  MainExecutor, GoogleSender, def;
+  MainExecutor, GoogleSender, def, Vcl.ExtCtrls;
 
 type
   TMainFrm = class(TForm)
     Memo1: TMemo;
     BitBtn2: TBitBtn;
     Button1: TButton;
-    Button2: TButton;
     Label1: TLabel;
     edComPort: TEdit;
     Label2: TLabel;
@@ -22,12 +21,15 @@ type
     edClientSecret: TEdit;
     btSave: TButton;
     btReloadServer: TButton;
+    Timer1: TTimer;
+    lbStatus: TLabel;
+    cbExecute: TCheckBox;
     procedure BitBtn2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btSaveClick(Sender: TObject);
     procedure btReloadServerClick(Sender: TObject);
+    procedure Timer1Timer(Sender: TObject);
   private
     { Private declarations }
     ex: TMainExecutor;
@@ -58,11 +60,10 @@ begin
   ex.GoogleSender.SendData(mes);
 end;
 
-
 procedure TMainFrm.btReloadServerClick(Sender: TObject);
 begin
   if (ex <> nil) and (ex.CO2Meter.GetDataCount > 0) then
-    if MessageDlg('There is measurements in queue that will be lost! Do you want to restart?', mtConfirmation, mbYesNo, 0) <> mrYes
+    if MessageDlg('There are measurements in queue that will be lost! Do you want to restart?', mtConfirmation, mbYesNo, 0) <> mrYes
     then exit;
 
   if ex <> nil then
@@ -104,11 +105,6 @@ begin
   ex.WorkCycle;
 end;
 
-procedure TMainFrm.Button2Click(Sender: TObject);
-begin
-  Memo1.Lines.Add('co2connect data count:' + IntToStr(ex.CO2Meter.GetDataCount) + ' start date:' + DateTimeToStr(ex.CO2Meter.GetDataStartDate));
-end;
-
 procedure TMainFrm.FormCreate(Sender: TObject);
 begin
   ex := nil;
@@ -123,6 +119,31 @@ begin
   end;
 
   btReloadServer.Click;
+end;
+
+procedure TMainFrm.Timer1Timer(Sender: TObject);
+var
+  StartDate: TDateTime;
+begin
+  Timer1.Enabled := false;
+  if ex <> nil then
+    try
+      // get data statistic
+      StartDate := ex.CO2Meter.GetDataStartDate;
+      lbStatus.Caption := 'Data count:' + IntToStr(ex.CO2Meter.GetDataCount);
+      if StartDate > EncodeDate(2000, 1, 1) then
+        lbStatus.Caption := lbStatus.Caption + ' start date:' + DateTimeToStr(StartDate);
+
+      // execute sending data
+      if cbExecute.Checked and (ex.CO2Meter.GetDataCount > 0) then
+      begin
+        ex.WorkCycle;
+        lbStatus.Caption := lbStatus.Caption + #$0D#$0A'Data sent...';
+      end;
+
+    except
+    end;
+  Timer1.Enabled := true;
 end;
 
 end.

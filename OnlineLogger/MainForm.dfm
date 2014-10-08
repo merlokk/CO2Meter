@@ -3,7 +3,7 @@ object MainFrm: TMainFrm
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Online logger'
-  ClientHeight = 495
+  ClientHeight = 517
   ClientWidth = 709
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -16,36 +16,43 @@ object MainFrm: TMainFrm
   PixelsPerInch = 120
   TextHeight = 16
   object Label1: TLabel
-    Left = 24
+    Left = 17
     Top = 8
     Width = 53
     Height = 16
     Caption = 'Com port'
   end
   object Label2: TLabel
-    Left = 24
+    Left = 17
     Top = 38
     Width = 89
     Height = 16
     Caption = 'Google client ID'
   end
   object Label3: TLabel
-    Left = 24
+    Left = 17
     Top = 68
     Width = 112
     Height = 16
     Caption = 'Google client secret'
   end
+  object lbStatus: TLabel
+    Left = 16
+    Top = 128
+    Width = 681
+    Height = 35
+    AutoSize = False
+  end
   object Memo1: TMemo
     Left = 8
-    Top = 176
+    Top = 200
     Width = 689
     Height = 305
     TabOrder = 0
   end
   object BitBtn2: TBitBtn
-    Left = 38
-    Top = 145
+    Left = 8
+    Top = 169
     Width = 75
     Height = 25
     Caption = 'sender'
@@ -53,61 +60,66 @@ object MainFrm: TMainFrm
     OnClick = BitBtn2Click
   end
   object Button1: TButton
-    Left = 134
-    Top = 145
+    Left = 89
+    Top = 169
     Width = 75
     Height = 25
     Caption = 'exec'
     TabOrder = 2
     OnClick = Button1Click
   end
-  object Button2: TButton
-    Left = 512
-    Top = 137
-    Width = 137
-    Height = 25
-    Caption = 'connector stat'
-    TabOrder = 3
-    OnClick = Button2Click
-  end
   object edComPort: TEdit
-    Left = 104
+    Left = 97
     Top = 5
     Width = 121
     Height = 24
     NumbersOnly = True
-    TabOrder = 4
+    TabOrder = 3
   end
   object edClientID: TEdit
-    Left = 144
+    Left = 137
     Top = 35
-    Width = 557
+    Width = 564
+    Height = 24
+    TabOrder = 4
+  end
+  object edClientSecret: TEdit
+    Left = 137
+    Top = 65
+    Width = 564
     Height = 24
     TabOrder = 5
   end
-  object edClientSecret: TEdit
-    Left = 144
-    Top = 65
-    Width = 557
-    Height = 24
-    TabOrder = 6
-  end
   object btSave: TButton
-    Left = 486
+    Left = 594
     Top = 95
     Width = 107
     Height = 25
     Caption = 'Save config'
-    TabOrder = 7
+    TabOrder = 6
     OnClick = btSaveClick
   end
   object btReloadServer: TButton
-    Left = 24
-    Top = 95
+    Left = 8
+    Top = 90
     Width = 107
     Height = 25
     Caption = 'Reload server'
-    TabOrder = 8
+    TabOrder = 7
     OnClick = btReloadServerClick
+  end
+  object cbExecute: TCheckBox
+    Left = 594
+    Top = 8
+    Width = 97
+    Height = 17
+    Caption = 'Running...'
+    TabOrder = 8
+  end
+  object Timer1: TTimer
+    Interval = 10000
+    OnTimer = Timer1Timer
+    Left = 656
+    Top = 8
   end
 end
