@@ -64,14 +64,21 @@ procedure TMainExecutor.WorkCycle;
 var
   mes: TMeasurements;
 begin
-//  storage.Load;
+  storage.Load;
+
   mes := metr.GetData;
 
-//  storage.Save;
+  storage.Add(mes);
 
-  if length(mes) > 0 then sender.SendData(mes);
+  storage.Save;
 
-//  storage.Clear;
+  // mes := storage.Get;
+  try
+    if length(mes) > 0 then sender.SendData(mes);
+
+  //  storage.Clear;
+  except
+  end;
 end;
 
 end.

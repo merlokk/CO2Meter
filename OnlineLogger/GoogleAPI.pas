@@ -4,7 +4,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, XMLIntf, XMLDoc, StrUtils, System.AnsiStrings,
-  REST.Types, System.JSON, IPPeerClient,
+  REST.Types, System.JSON, IPPeerClient, DateUtils,
   REST.Authenticator.OAuth, REST.Authenticator.OAuth.WebForm.Win,
   REST.Client, Data.Bind.Components, Data.Bind.ObjectScope, def;
 
@@ -57,10 +57,13 @@ type
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
     function ExtractMeasurement(cell: TJSONObject): TMeasurement;
+
+    procedure GetNewToken;
   public
     constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
 
     procedure Authenticate(Owner: TComponent);
+    function TryAuthenticate: boolean;
     property Authenticated: boolean read GetAuthenticated;
 
     function isDirectoryExist(AParent, ADirName: string): boolean;
@@ -88,6 +91,55 @@ implementation
 
 { TGoogleAPI }
 
+procedure TGoogleAPI.GetNewToken;
+var
+  LClient: TRestClient;
+  LRequest: TRESTRequest;
+  LToken: string;
+  LIntValue: int64;
+begin
+  try
+    LClient := TRestClient.Create(OAuth2Authenticator.AccessTokenEndpoint);
+
+    LRequest := TRESTRequest.Create(nil);
+    LRequest.Method := TRESTRequestMethod.rmPOST;
+    LRequest.Client := LClient;
+
+    LRequest.AddAuthParameter('refresh_token', OAuth2Authenticator.RefreshToken, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('client_id', OAuth2Authenticator.ClientID, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('client_secret', OAuth2Authenticator.ClientSecret, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('grant_type', 'refresh_token', TRESTRequestParameterKind.pkGETorPOST);
+
+    LRequest.Execute;
+
+    if LRequest.Response.GetSimpleValue('access_token', LToken) then
+      OAuth2Authenticator.AccessToken := LToken;
+    if LRequest.Response.GetSimpleValue('refresh_token', LToken) then
+      OAuth2Authenticator.RefreshToken := LToken;
+
+    /// detect token-type. this is important for how using it later
+    if LRequest.Response.GetSimpleValue('token_type', LToken) then
+      OAuth2Authenticator.TokenType := OAuth2TokenTypeFromString(LToken);
+
+    /// if provided by the service, the field "expires_in" contains
+    /// the number of seconds an access-token will be valid
+    if LRequest.Response.GetSimpleValue('expires_in', LToken) then
+    begin
+      LIntValue := StrToIntdef(LToken, -1);
+      if (LIntValue > -1) then
+        OAuth2Authenticator.AccessTokenExpiry := IncSecond(Now, LIntValue)
+      else
+        OAuth2Authenticator.AccessTokenExpiry := 0.0;
+    end;
+
+  finally
+    FreeAndNil(LClient);
+    FreeAndNil(LRequest);
+  end;
+
+end;
+
+
 procedure TGoogleAPI.TitleChanged(const ATitle: string;
   var DoCloseWebView: boolean);
 begin
@@ -96,6 +148,19 @@ begin
     OAuth2Authenticator.AuthCode:= Copy(ATitle, 14, Length(ATitle));
     if (OAuth2Authenticator.AuthCode <> '') then
       DoCloseWebView := TRUE;
+  end;
+end;
+
+function TGoogleAPI.TryAuthenticate: boolean;
+begin
+  Result := true;
+  if not Authenticated then
+  try
+    if OAuth2Authenticator.RefreshToken <> '' then
+      GetNewToken;
+
+  except
+    Result := false;
   end;
 end;
 
@@ -138,6 +203,7 @@ var
 begin
   Result := '';
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   RESTRequest.Method:=rmPOST;
   RESTRequest.Resource:='/files';
@@ -152,7 +218,7 @@ begin
   if Assigned(RESTRequest.Response.JSONValue) then
     begin
       JSONObject := RESTRequest.Response.JSONValue as TJSONObject;
-      Result := JSONObject.Get('id').JsonValue.Value;
+      Result := JSONObject.Get('id').JsonValue.Value;   // REFACTOR
     end;
 end;
 
@@ -162,6 +228,7 @@ var
 begin
   Result := '';
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   RESTRequest.Method:=rmPOST;
   RESTRequest.Resource:='/files';
@@ -188,19 +255,22 @@ var
 begin
   Result.Clear;
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmPOST;
   SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full?alt=json';
 //  SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST); -- it cant do that in POST!
 
-  SRESTRequest.AddBody('{"entry": {"title": {	"type": "text",	"$t": "Expenses"}, "gs$colCount": {"$t": "10"},"gs$rowCount": {	"$t": "50"} }}',
- TRESTContentType.ctAPPLICATION_JSON);
-{  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
+// have tried to send JSON, but it cant receive it(
+//  SRESTRequest.AddBody('{"entry": {"title": {	"type": "text",	"$t": "Expenses"}, "gs$colCount": {"$t": "10"},"gs$rowCount": {	"$t": "50"} }}',
+// TRESTContentType.ctAPPLICATION_JSON);
+
+  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gs="http://schemas.google.com/spreadsheets/2006">' +
     ' <title>' + AWorksheetName + '</title>' +
     ' <gs:rowCount>' + IntToStr(ARowCount) + '</gs:rowCount>' +
     ' <gs:colCount>' + IntToStr(AColCount) + '</gs:colCount>' +
     '</entry>',
-    TRESTContentType.ctAPPLICATION_ATOM_XML);  }
+    TRESTContentType.ctAPPLICATION_ATOM_XML);
   SRESTRequest.Execute;
   if Assigned(SRESTRequest.Response.JSONValue) then
   begin
@@ -220,6 +290,7 @@ var
 begin
   Result.Clear;
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmPUT;
   SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full/' + AWorksheetID + '/' + AWorksheetVersion + '?alt=json';
@@ -242,7 +313,7 @@ end;
 
 function TGoogleAPI.GetAuthenticated: boolean;
 begin
-  Result := OAuth2Authenticator.AccessToken <> '';
+  Result := (OAuth2Authenticator.AccessToken <> '') and (OAuth2Authenticator.AccessTokenExpiry > (now + 10 / SecsPerDay));
 end;
 
 function TGoogleAPI.GetCells(AFileID, AWorksheetID: string; AMinRow, AMaxRow, AMinCol,
@@ -256,6 +327,7 @@ var
 begin
   SetLength(Result, 0);
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmGET;
   SRESTRequest.Resource:='/cells/' + AFileID + '/' + AWorksheetID + '/private/full';
@@ -431,6 +503,7 @@ var
 begin
   Result := '';
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   RESTRequest.Method:=rmGET;
   RESTRequest.Resource:='/files';
@@ -471,6 +544,7 @@ var
 begin
   Result := '';
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   RESTRequest.Method:=rmGET;
   RESTRequest.Resource:='/files';
@@ -509,6 +583,7 @@ var
 begin
   SetLength(Result, 0);
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmGET;
   SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full';
@@ -556,6 +631,7 @@ var
 begin
   SetLength(Result, 0);
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmGET;
   SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full';
@@ -585,6 +661,7 @@ var
 begin
   Result.Clear;
   ClearRESTConnector;
+  if not TryAuthenticate then exit;
 
   SRESTRequest.Method:=rmPOST;
   SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
@@ -650,6 +727,7 @@ var
   TryCount: integer;
 begin
   TryCount := 0;
+  if not TryAuthenticate then exit;
 
   repeat
     TryCount := TryCount + 1;

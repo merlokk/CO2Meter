@@ -2,7 +2,7 @@ unit def;
 
 interface
 uses
-  SysUtils, Variants, System.AnsiStrings;
+  SysUtils, Variants, System.AnsiStrings, Generics.Collections, Generics.Defaults;
 
 type
   TMeasurement = packed record
@@ -16,9 +16,15 @@ type
     Humidity: real;
 
     procedure Clear;
+    procedure Serialize;
+    procedure Deserialize;
   end;
 
   TMeasurements = array of TMeasurement;
+
+  TMeasurementsHelper = record helper for TMeasurements
+    procedure Sort;
+  end;
 
 implementation
 
@@ -32,8 +38,30 @@ begin
   Date := 0;
   InternalDate := 0;
   Temperature := 0;
-  CO2Level := 0;;
+  CO2Level := 0;
   Humidity := 0;
+end;
+
+{ TMeasurementsHelper }
+
+procedure TMeasurementsHelper.Sort;
+begin
+  TArray.Sort<TMeasurement>(Self, TDelegatedComparer<TMeasurement>.Construct(
+    function(const Left, Right: TMeasurement): Integer
+    begin
+      Result := {Left.InternalDate - Right.InternalDate; }TComparer<Integer>.Default.Compare(Left.InternalDate, Right.InternalDate);
+    end)
+  );
+end;
+
+procedure TMeasurement.Deserialize;
+begin
+
+end;
+
+procedure TMeasurement.Serialize;
+begin
+
 end;
 
 end.

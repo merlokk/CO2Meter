@@ -48,7 +48,6 @@ uses CO2Meter;
 
 procedure TMainFrm.BitBtn2Click(Sender: TObject);
 var
- sn: TGoogleSender;
  mes: TMeasurements;
 begin
   SetLength(mes, 1);
