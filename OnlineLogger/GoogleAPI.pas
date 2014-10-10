@@ -36,6 +36,8 @@ type
 
   TGoogleAPI = class
   private
+    FOwner: TComponent;
+
     OAuth2Authenticator: TOAuth2Authenticator;
     // google drive
     RESTClient: TRESTClient;
@@ -57,12 +59,10 @@ type
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
     function ExtractMeasurement(cell: TJSONObject): TMeasurement;
-
-    procedure GetNewToken;
   public
-    constructor Create(Owner: TComponent; AClientID, AClientSecret: string);
+    constructor Create(AOwner: TComponent; AClientID, AClientSecret: string);
 
-    procedure Authenticate(Owner: TComponent);
+    procedure Authenticate;
     function TryAuthenticate: boolean;
     property Authenticated: boolean read GetAuthenticated;
 
@@ -87,11 +87,34 @@ type
     procedure SetCellValue(var ACells: TGCells; ARow, ACol: integer; AInputValue: string);
   end;
 
+  TOAuth2AuthenticatorHelper = class helper for TOAuth2Authenticator
+    procedure GetNewToken;
+  end;
+
+  TJSONObjectHelper = class helper for TJSONObject
+    function TryGetValue(const APath: string): string;
+  end;
+
 implementation
 
-{ TGoogleAPI }
+function TJSONObjectHelper.TryGetValue(const APath: string): string;
+var
+  LJSONValue: TJSONValue;
+begin
+  Result := '';
+  LJSONValue := FindValue(APath);
+  if LJSONValue <> nil then
+  begin
+    try
+      Result := LJSONValue.ToString;
+    except
+    end;
+  end;
+end;
 
-procedure TGoogleAPI.GetNewToken;
+{ TOAuth2AuthenticatorHelper }
+
+procedure TOAuth2AuthenticatorHelper.GetNewToken;
 var
   LClient: TRestClient;
   LRequest: TRESTRequest;
@@ -99,27 +122,27 @@ var
   LIntValue: int64;
 begin
   try
-    LClient := TRestClient.Create(OAuth2Authenticator.AccessTokenEndpoint);
+    LClient := TRestClient.Create(Self.AccessTokenEndpoint);
 
     LRequest := TRESTRequest.Create(nil);
     LRequest.Method := TRESTRequestMethod.rmPOST;
     LRequest.Client := LClient;
 
-    LRequest.AddAuthParameter('refresh_token', OAuth2Authenticator.RefreshToken, TRESTRequestParameterKind.pkGETorPOST);
-    LRequest.AddAuthParameter('client_id', OAuth2Authenticator.ClientID, TRESTRequestParameterKind.pkGETorPOST);
-    LRequest.AddAuthParameter('client_secret', OAuth2Authenticator.ClientSecret, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('refresh_token', Self.RefreshToken, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('client_id', Self.ClientID, TRESTRequestParameterKind.pkGETorPOST);
+    LRequest.AddAuthParameter('client_secret', Self.ClientSecret, TRESTRequestParameterKind.pkGETorPOST);
     LRequest.AddAuthParameter('grant_type', 'refresh_token', TRESTRequestParameterKind.pkGETorPOST);
 
     LRequest.Execute;
 
     if LRequest.Response.GetSimpleValue('access_token', LToken) then
-      OAuth2Authenticator.AccessToken := LToken;
+      Self.AccessToken := LToken;
     if LRequest.Response.GetSimpleValue('refresh_token', LToken) then
-      OAuth2Authenticator.RefreshToken := LToken;
+      Self.RefreshToken := LToken;
 
     /// detect token-type. this is important for how using it later
     if LRequest.Response.GetSimpleValue('token_type', LToken) then
-      OAuth2Authenticator.TokenType := OAuth2TokenTypeFromString(LToken);
+      Self.TokenType := OAuth2TokenTypeFromString(LToken);
 
     /// if provided by the service, the field "expires_in" contains
     /// the number of seconds an access-token will be valid
@@ -127,9 +150,9 @@ begin
     begin
       LIntValue := StrToIntdef(LToken, -1);
       if (LIntValue > -1) then
-        OAuth2Authenticator.AccessTokenExpiry := IncSecond(Now, LIntValue)
+        Self.AccessTokenExpiry := IncSecond(Now, LIntValue)
       else
-        OAuth2Authenticator.AccessTokenExpiry := 0.0;
+        Self.AccessTokenExpiry := 0.0;
     end;
 
   finally
@@ -138,6 +161,9 @@ begin
   end;
 
 end;
+
+
+{ TGoogleAPI }
 
 
 procedure TGoogleAPI.TitleChanged(const ATitle: string;
@@ -157,16 +183,20 @@ begin
   if not Authenticated then
   try
     if OAuth2Authenticator.RefreshToken <> '' then
-      GetNewToken;
+      OAuth2Authenticator.GetNewToken;
 
+    if not Authenticated then
+      Authenticate();
   except
     Result := false;
   end;
 end;
 
-constructor TGoogleAPI.Create(Owner: TComponent; AClientID, AClientSecret: string);
+constructor TGoogleAPI.Create(AOwner: TComponent; AClientID, AClientSecret: string);
 begin
-  OAuth2Authenticator := TOAuth2Authenticator.Create(Owner);
+  FOwner := AOwner;
+
+  OAuth2Authenticator := TOAuth2Authenticator.Create(AOwner);
   OAuth2Authenticator.AuthorizationEndpoint := 'https://accounts.google.com/o/oauth2/auth';
   OAuth2Authenticator.AccessTokenEndpoint := 'https://accounts.google.com/o/oauth2/token';
   OAuth2Authenticator.RedirectionEndpoint := 'urn:ietf:wg:oauth:2.0:oob';
@@ -174,27 +204,27 @@ begin
   OAuth2Authenticator.ClientID := AClientID;
   OAuth2Authenticator.ClientSecret := AClientSecret;
 
-  RESTClient := TRESTClient.Create(Owner);
+  RESTClient := TRESTClient.Create(AOwner);
   RESTClient.Authenticator := OAuth2Authenticator;
   RESTClient.BaseURL := 'https://www.googleapis.com/drive/v2';
 
-  RESTResponse := TRESTResponse.Create(Owner);
+  RESTResponse := TRESTResponse.Create(AOwner);
 
-  RESTRequest := TRESTRequest.Create(Owner);
+  RESTRequest := TRESTRequest.Create(AOwner);
   RESTRequest.Client := RESTClient;
   RESTRequest.Response := RESTResponse;
 
-  SRESTClient := TRESTClient.Create(Owner);
+  SRESTClient := TRESTClient.Create(AOwner);
   SRESTClient.Authenticator := OAuth2Authenticator;
   SRESTClient.BaseURL := 'https://spreadsheets.google.com/feeds';
 
-  SRESTResponse := TRESTResponse.Create(Owner);
+  SRESTResponse := TRESTResponse.Create(AOwner);
 
-  SRESTRequest := TRESTRequest.Create(Owner);
+  SRESTRequest := TRESTRequest.Create(AOwner);
   SRESTRequest.Client := SRESTClient;
   SRESTRequest.Response := SRESTResponse;
 
-  Authenticate(Owner);
+  Authenticate;
 end;
 
 function TGoogleAPI.CreateDirectory(AParent, ADirName: string): string;
@@ -218,7 +248,7 @@ begin
   if Assigned(RESTRequest.Response.JSONValue) then
     begin
       JSONObject := RESTRequest.Response.JSONValue as TJSONObject;
-      Result := JSONObject.Get('id').JsonValue.Value;   // REFACTOR
+      Result := JSONObject.TryGetValue('id');
     end;
 end;
 
@@ -243,7 +273,7 @@ begin
   if Assigned(RESTRequest.Response.JSONValue) then
     begin
       JSONObject := RESTRequest.Response.JSONValue as TJSONObject;
-      Result := JSONObject.Get('id').JsonValue.Value;
+      Result := JSONObject.TryGetValue('id');
     end;
 end;
 
@@ -526,7 +556,7 @@ begin
         for i := 0 to ListItems.Count - 1 do
         begin
           FileObject := ListItems.Items[i] as TJSONObject;
-          Result := FileObject.Get('id').JsonValue.Value;
+          Result := FileObject.TryGetValue('id');
           if Result <> '' then break;
         end;
       end;
@@ -564,7 +594,7 @@ begin
         for i := 0 to ListItems.Count - 1 do
         begin
           FileObject := ListItems.Items[i] as TJSONObject;
-          Result := FileObject.Get('id').JsonValue.Value;
+          Result := FileObject.TryGetValue('id');
           if Result <> '' then break;
         end;
       end;
@@ -685,14 +715,14 @@ begin
   end;
 end;
 
-procedure TGoogleAPI.Authenticate(Owner: TComponent);
+procedure TGoogleAPI.Authenticate;
 var
   wf: Tfrm_OAuthWebForm;
 begin
   OAuth2Authenticator.Authenticate(RESTRequest);
   if OAuth2Authenticator.AccessToken = '' then
   begin
-    wf := Tfrm_OAuthWebForm.Create(Owner);
+    wf := Tfrm_OAuthWebForm.Create(FOwner);
     try
       wf.OnTitleChanged := TitleChanged;
       wf.ShowModalWithURL(OAuth2Authenticator.AuthorizationRequestURI);
