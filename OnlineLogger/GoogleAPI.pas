@@ -55,7 +55,6 @@ type
     procedure ClearRESTConnector;
 
     function GetSpValue(val: TJSONValue): string;
-    function ExtractFromQuotes(s: string): string;
     function ExtractWorksheetMetadata(spreadsheet: TJSONObject): TWorksheet;
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
     function ExtractMeasurement(cell: TJSONObject): TMeasurement;
@@ -97,6 +96,17 @@ type
 
 implementation
 
+{ functions }
+
+function ExtractFromQuotes(s: string): string;
+begin
+  if (length(s) > 1) and (s[1] = '"') then s := Copy(s, 2, length(s));
+  if (length(s) > 1) and (s[length(s)] = '"') then s := Copy(s, 1, length(s) - 1);
+  Result := s;
+end;
+
+{ TJSONObjectHelper }
+
 function TJSONObjectHelper.TryGetValue(const APath: string): string;
 var
   LJSONValue: TJSONValue;
@@ -106,7 +116,7 @@ begin
   if LJSONValue <> nil then
   begin
     try
-      Result := LJSONValue.ToString;
+      Result :=  ExtractFromQuotes(LJSONValue.ToString);
     except
     end;
   end;
@@ -440,13 +450,6 @@ begin
 
   s := ExtractFromQuotes(ReverseString(s));
   Result.EditTag := ReverseString(Copy(s, 1, pos('/', s) - 1));
-end;
-
-function TGoogleAPI.ExtractFromQuotes(s: string): string;
-begin
-  if (length(s) > 1) and (s[1] = '"') then s := Copy(s, 2, length(s));
-  if (length(s) > 1) and (s[length(s)] = '"') then s := Copy(s, 1, length(s) - 1);
-  Result := s;
 end;
 
 function TGoogleAPI.ExtractMeasurement(cell: TJSONObject): TMeasurement;

@@ -49,7 +49,7 @@ begin
   TArray.Sort<TMeasurement>(Self, TDelegatedComparer<TMeasurement>.Construct(
     function(const Left, Right: TMeasurement): Integer
     begin
-      Result := {Left.InternalDate - Right.InternalDate; }TComparer<Integer>.Default.Compare(Left.InternalDate, Right.InternalDate);
+      Result := TComparer<Integer>.Default.Compare(Left.InternalDate, Right.InternalDate);
     end)
   );
 end;
