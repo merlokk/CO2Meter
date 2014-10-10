@@ -2,7 +2,8 @@ unit def;
 
 interface
 uses
-  SysUtils, Variants, System.AnsiStrings, Generics.Collections, Generics.Defaults;
+  SysUtils, Variants, System.AnsiStrings, Generics.Collections, Generics.Defaults,
+  System.JSON;
 
 type
   TMeasurement = packed record
@@ -16,8 +17,8 @@ type
     Humidity: real;
 
     procedure Clear;
-    procedure Serialize;
-    procedure Deserialize;
+    procedure Serialize(AItem: TJSONObject);
+    procedure Deserialize(AItem: TJSONObject);
   end;
 
   TMeasurements = array of TMeasurement;
@@ -26,7 +27,18 @@ type
     procedure Sort;
   end;
 
+function ExtractFromQuotes(s: string): string;
+
 implementation
+
+{ functions }
+
+function ExtractFromQuotes(s: string): string;
+begin
+  if (length(s) > 1) and (s[1] = '"') then s := Copy(s, 2, length(s));
+  if (length(s) > 1) and (s[length(s)] = '"') then s := Copy(s, 1, length(s) - 1);
+  Result := s;
+end;
 
 { TMeasurementRec }
 
@@ -54,14 +66,26 @@ begin
   );
 end;
 
-procedure TMeasurement.Deserialize;
+procedure TMeasurement.Deserialize(AItem: TJSONObject);
 begin
+  Clear;
 
+  Date := StrToDateTimeDef(ExtractFromQuotes(AItem.GetValue('date').ToString), 0);
+  InternalDate := StrToIntDef(ExtractFromQuotes(AItem.GetValue('idate').ToString), 0);
+  Temperature := JsonToFloat(ExtractFromQuotes(AItem.GetValue('temperature').ToString));
+  CO2Level := StrToIntDef(ExtractFromQuotes(AItem.GetValue('co2level').ToString), 0);
+  Humidity := JsonToFloat(ExtractFromQuotes(AItem.GetValue('humidity').ToString));
+
+  if InternalDate = 0 then Clear;
 end;
 
-procedure TMeasurement.Serialize;
+procedure TMeasurement.Serialize(AItem: TJSONObject);
 begin
-
+  AItem.addpair('date', DateTimeToStr(Date));
+  AItem.addpair('idate', IntToStr(InternalDate));
+  AItem.addpair('temperature', FloatToJson(Temperature));
+  AItem.addpair('co2level', IntToStr(CO2Level));
+  AItem.addpair('humidity', FloatToJson(Humidity));
 end;
 
 end.

@@ -16,12 +16,12 @@ type
     function GetFileName(AFileDate: TDateTime): string;
 
     procedure ChangeWorkFile(FileDate: TDateTime);
-    procedure SendData1Month(AMeasurements: TMeasurements);
+    function SendData1Month(AMeasurements: TMeasurements): boolean;
   public
     constructor Create(Sender: TComponent; AClientID, AClientSecret: string);
 
     function isValidWorkFile: boolean;
-    procedure SendData(AMeasurements: TMeasurements);
+    function SendData(AMeasurements: TMeasurements): boolean;
   end;
 
 implementation
@@ -44,13 +44,16 @@ begin
     (FMyWorksheet.Id <> '');
 end;
 
-procedure TGoogleSender.SendData1Month(AMeasurements: TMeasurements);
+function TGoogleSender.SendData1Month(AMeasurements: TMeasurements): boolean;
 var
   i: integer;
   me: TMeasurement;
   mes: TMeasurements;
 begin
+  Result := true;
   if length(AMeasurements) = 0 then exit;
+
+  Result := false;
 
   // if we have a valid workfile links then don't refresh workfile
   if (not isValidWorkFile) or (FFileName <> GetFileName(AMeasurements[0].Date)) then
@@ -60,20 +63,33 @@ begin
 
   // works with data
   for i := 0 to length(AMeasurements) - 1 do
-  begin
+  try
     mes := FAPI.GetListRow(FFileID, FMyWorksheet.Id, 'internaldate=' + IntToStr(AMeasurements[i].InternalDate));
     if length(mes) = 0 then
+    begin
       me := FAPI.AddListRow(FFileID, FMyWorksheet.Id, AMeasurements[i]);
+      if me.InternalDate = 0 then
+      begin
+        FFileID := '';
+        break;
+      end;
+    end;
+  except
+    FFileID := '';
+    break;
   end;
+
+  Result := isValidWorkFile;
 end;
 
-procedure TGoogleSender.SendData(AMeasurements: TMeasurements);
+function TGoogleSender.SendData(AMeasurements: TMeasurements): boolean;
 begin
+  Result := true;
   if length(AMeasurements) = 0 then exit;
 
   // {TODO} here will be a part of working with separate months in one list!
 
-  SendData1Month(AMeasurements);
+  Result := SendData1Month(AMeasurements);
 end;
 
 function TGoogleSender.GetFileName(AFileDate: TDateTime): string;
@@ -99,7 +115,11 @@ begin
 
   // get current file
   FFileID := FAPI.GetFileID(dirID, FFileName);
-  if FFileID = '' then FFileID := FAPI.CreateFile(dirID, FFileName);
+  if FFileID = '' then
+  begin
+    FFileID := FAPI.CreateFile(dirID, FFileName);
+    Sleep(300);
+  end;
 
   if FFileID = '' then exit;
 

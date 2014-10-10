@@ -72,11 +72,14 @@ begin
 
   storage.Save;
 
-  // mes := storage.Get;
+ // mes := storage.Get;
   try
-    if length(mes) > 0 then sender.SendData(mes);
-
-  //  storage.Clear;
+    if length(mes) > 0 then
+      if sender.SendData(mes) then
+      begin
+        storage.Clear;
+   //     storage.Save;
+      end;
   except
   end;
 end;
