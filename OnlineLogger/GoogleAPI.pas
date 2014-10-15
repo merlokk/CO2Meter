@@ -96,15 +96,6 @@ type
 
 implementation
 
-{ functions }
-
-function ExtractFromQuotes(s: string): string;
-begin
-  if (length(s) > 1) and (s[1] = '"') then s := Copy(s, 2, length(s));
-  if (length(s) > 1) and (s[length(s)] = '"') then s := Copy(s, 1, length(s) - 1);
-  Result := s;
-end;
-
 { TJSONObjectHelper }
 
 function TJSONObjectHelper.TryGetValue(const APath: string): string;

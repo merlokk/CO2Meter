@@ -101,6 +101,7 @@ begin
       FMesArray[length(FMesArray) - 1] := mes;
     end;
 
+    js.Free;
   end;
 
   Sort;
@@ -128,6 +129,8 @@ begin
   js.AddPair(TJSONPair.Create('list', arr));
 
    TFile.WriteAllText(FStoreFileName, js.ToString);
+
+   js.Free;
 end;
 
 procedure TLocalStorage.Sort;
