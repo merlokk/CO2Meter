@@ -10,7 +10,6 @@ uses
 
 type
   TMainFrm = class(TForm)
-    Memo1: TMemo;
     BitBtn2: TBitBtn;
     Button1: TButton;
     Label1: TLabel;

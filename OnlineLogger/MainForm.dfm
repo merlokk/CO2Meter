@@ -3,7 +3,7 @@ object MainFrm: TMainFrm
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
   Caption = 'Online logger'
-  ClientHeight = 517
+  ClientHeight = 199
   ClientWidth = 709
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -43,20 +43,13 @@ object MainFrm: TMainFrm
     Height = 35
     AutoSize = False
   end
-  object Memo1: TMemo
-    Left = 8
-    Top = 200
-    Width = 689
-    Height = 305
-    TabOrder = 0
-  end
   object BitBtn2: TBitBtn
     Left = 8
     Top = 169
     Width = 75
     Height = 25
     Caption = 'sender'
-    TabOrder = 1
+    TabOrder = 0
     OnClick = BitBtn2Click
   end
   object Button1: TButton
@@ -64,8 +57,8 @@ object MainFrm: TMainFrm
     Top = 169
     Width = 75
     Height = 25
-    Caption = 'exec'
-    TabOrder = 2
+    Caption = 'execute'
+    TabOrder = 1
     OnClick = Button1Click
   end
   object edComPort: TEdit
@@ -74,21 +67,21 @@ object MainFrm: TMainFrm
     Width = 121
     Height = 24
     NumbersOnly = True
-    TabOrder = 3
+    TabOrder = 2
   end
   object edClientID: TEdit
     Left = 137
     Top = 35
     Width = 564
     Height = 24
-    TabOrder = 4
+    TabOrder = 3
   end
   object edClientSecret: TEdit
     Left = 137
     Top = 65
     Width = 564
     Height = 24
-    TabOrder = 5
+    TabOrder = 4
   end
   object btSave: TButton
     Left = 594
@@ -96,7 +89,7 @@ object MainFrm: TMainFrm
     Width = 107
     Height = 25
     Caption = 'Save config'
-    TabOrder = 6
+    TabOrder = 5
     OnClick = btSaveClick
   end
   object btReloadServer: TButton
@@ -105,7 +98,7 @@ object MainFrm: TMainFrm
     Width = 107
     Height = 25
     Caption = 'Reload server'
-    TabOrder = 7
+    TabOrder = 6
     OnClick = btReloadServerClick
   end
   object cbExecute: TCheckBox
@@ -114,7 +107,7 @@ object MainFrm: TMainFrm
     Width = 97
     Height = 17
     Caption = 'Running...'
-    TabOrder = 8
+    TabOrder = 7
   end
   object Timer1: TTimer
     Interval = 10000
