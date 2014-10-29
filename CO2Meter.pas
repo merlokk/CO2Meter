@@ -47,6 +47,9 @@ type
     property Connected: boolean read GetConnected;
   end;
 
+const
+  CO2METER_MAX_MEM_SAMPLES = 5333;
+
 implementation
 
 { TCO2Meter }
