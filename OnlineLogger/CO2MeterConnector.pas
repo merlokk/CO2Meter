@@ -10,7 +10,7 @@ type
   TCO2MeterConnector = class (TThread)
   private
     FComPort: integer;
-    FInterval: integer;
+    FInterval: integer; //samples rate
     FMeasurements: TMeasurements;
 
     LastMesMade: integer;
@@ -57,7 +57,13 @@ var
   i: integer;
   mes: TMeasurement;
   secs: integer;
+  setDT: TDateTime;
+  samplesCount,
+  samplesRate: Cardinal;
+  samplesStartDate: TDateTime;
 begin
+  setDT := 0;
+
   LastMesMade := (SecondsBetween(now, EncodeDate(2000, 1, 1)) div FInterval) * FInterval;
   sleep(100);
 
@@ -70,7 +76,8 @@ begin
       secs := SecondsBetween(now, EncodeDate(2000, 1, 1));
 
       if LastMesMade + FInterval <= (secs div FInterval) * FInterval then
-      begin
+      try
+        // add online data to list
         mes.Clear;
         metr.GetCurrentMeasurement(mes.Temperature, mes.CO2Level, mes.Humidity);
         mes.Date := now;
@@ -85,6 +92,32 @@ begin
         finally
           cs.Leave;
         end;
+
+        // sync clock and get offline data {TODO}
+        if setDT + 60 / MinsPerDay < Now then
+        try
+          setDT := Now;
+
+          metr.GetMemoryStat(samplesCount, samplesRate, samplesStartDate);
+
+          // if there is no filling memory. With guard interval
+          if (samplesStartDate + (samplesRate * (samplesCount + 1) + 60) / SecsPerDay < Now) then
+          begin
+            // get data
+
+
+            // set datetime and sampling
+            metr.SetDateTime(setDT);
+            metr.SetSamplingRate(FInterval);
+          end;
+        except
+          Sleep(100);
+        end;
+
+
+
+      except
+        Sleep(100);
       end;
     end;
 
