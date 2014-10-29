@@ -2,9 +2,10 @@ object MainFrm: TMainFrm
   Left = 0
   Top = 0
   BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
   Caption = 'Online logger'
-  ClientHeight = 199
-  ClientWidth = 709
+  ClientHeight = 200
+  ClientWidth = 710
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -44,20 +45,21 @@ object MainFrm: TMainFrm
     AutoSize = False
   end
   object BitBtn2: TBitBtn
-    Left = 8
+    Left = 626
     Top = 169
     Width = 75
     Height = 25
     Caption = 'sender'
     TabOrder = 0
+    Visible = False
     OnClick = BitBtn2Click
   end
   object Button1: TButton
-    Left = 89
+    Left = 8
     Top = 169
-    Width = 75
+    Width = 137
     Height = 25
-    Caption = 'execute'
+    Caption = 'Save to cloud once'
     TabOrder = 1
     OnClick = Button1Click
   end
@@ -102,11 +104,11 @@ object MainFrm: TMainFrm
     OnClick = btReloadServerClick
   end
   object cbExecute: TCheckBox
-    Left = 594
-    Top = 8
-    Width = 97
+    Left = 167
+    Top = 175
+    Width = 210
     Height = 17
-    Caption = 'Running...'
+    Caption = 'Auto save to cloud every 10s'
     TabOrder = 7
   end
   object Timer1: TTimer

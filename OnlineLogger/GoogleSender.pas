@@ -2,7 +2,8 @@ unit GoogleSender;
 
 interface
 uses
-  System.Classes, SysUtils, Variants, System.AnsiStrings, GoogleAPI, def;
+  System.Classes, SysUtils, Variants, System.AnsiStrings, GoogleAPI, DateUtils,
+  def;
 
 type
   TGoogleSender = class
@@ -83,13 +84,32 @@ begin
 end;
 
 function TGoogleSender.SendData(AMeasurements: TMeasurements): boolean;
+var
+  i: Integer;
+  bgmonth: integer;
+  bgid: integer;
+  tmes: TMeasurements;
 begin
   Result := true;
   if length(AMeasurements) = 0 then exit;
 
-  // {TODO} here will be a part of working with separate months in one list!
+  // data may be from different months. we separate it.
+  bgid := 0;
+  bgmonth := MonthOfTheYear(AMeasurements[bgid].Date);
+  for i := 0 to length(AMeasurements) - 1 do
+    if bgmonth <> MonthOfTheYear(AMeasurements[i].Date) then
+    begin
+      tmes := Copy(AMeasurements, bgid, i - bgid);
 
-  Result := SendData1Month(AMeasurements);
+      bgid := i;
+      bgmonth := MonthOfTheYear(AMeasurements[bgid].Date);
+
+      Result := SendData1Month(tmes);
+    end;
+
+  // the last portion of data
+  tmes := Copy(AMeasurements, bgid, length(AMeasurements));
+  Result := SendData1Month(tmes);
 end;
 
 function TGoogleSender.GetFileName(AFileDate: TDateTime): string;
