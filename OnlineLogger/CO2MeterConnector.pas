@@ -96,8 +96,6 @@ begin
         // sync clock and get offline data {TODO}
         if setDT + 60 / MinsPerDay < Now then
         try
-          setDT := Now;
-
           metr.GetMemoryStat(samplesCount, samplesRate, samplesStartDate);
 
           // if there is no filling memory. With guard interval
@@ -107,6 +105,7 @@ begin
 
 
             // set datetime and sampling
+            setDT := Now;
             metr.SetDateTime(setDT);
             metr.SetSamplingRate(FInterval);
           end;
