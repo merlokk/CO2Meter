@@ -61,6 +61,7 @@ var
   samplesCount,
   samplesRate: Cardinal;
   samplesStartDate: TDateTime;
+  samples: TStringList;
 begin
   setDT := 0;
 
@@ -102,7 +103,14 @@ begin
           if (samplesStartDate + (samplesRate * (samplesCount + 1) + 60) / SecsPerDay < Now) then
           begin
             // get data
-
+            samples := TStringList.Create;
+            try
+             //metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+             // normalize samples and put it into queue  {TODO}
+             // start another sampling cycle  {TODO}
+            finally
+              FreeAndNil(samples)
+            end;
 
             // set datetime and sampling
             setDT := Now;
