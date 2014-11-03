@@ -4,7 +4,7 @@ interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, StdCtrls, XMLIntf, XMLDoc, StrUtils, System.AnsiStrings,
-  REST.Types, System.JSON, IPPeerClient, DateUtils,
+  REST.Types, System.JSON, IPPeerClient, DateUtils, IniFiles,
   REST.Authenticator.OAuth, REST.Authenticator.OAuth.WebForm.Win,
   REST.Client, Data.Bind.Components, Data.Bind.ObjectScope, def;
 
@@ -37,6 +37,7 @@ type
   TGoogleAPI = class
   private
     FOwner: TComponent;
+    FIniFile: TIniFile;
 
     OAuth2Authenticator: TOAuth2Authenticator;
     // google drive
@@ -59,7 +60,7 @@ type
     function ExtractCellMetadata(cell: TJSONObject): TGCell;
     function ExtractMeasurement(cell: TJSONObject): TMeasurement;
   public
-    constructor Create(AOwner: TComponent; AClientID, AClientSecret: string);
+    constructor Create(AOwner: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
 
     procedure Authenticate;
     function TryAuthenticate: boolean;
@@ -84,6 +85,8 @@ type
 
     function GetCellValue(ACells: TGCells; ARow, ACol: integer): string;
     procedure SetCellValue(var ACells: TGCells; ARow, ACol: integer; AInputValue: string);
+
+    property TokenIniFile: TIniFile read FIniFile;
   end;
 
   TOAuth2AuthenticatorHelper = class helper for TOAuth2Authenticator
@@ -183,19 +186,26 @@ begin
   Result := true;
   if not Authenticated then
   try
+    if Assigned(FIniFile) and (OAuth2Authenticator.RefreshToken = '') then
+      OAuth2Authenticator.RefreshToken := FIniFile.ReadString('Security', 'RefreshToken', '');
+
     if OAuth2Authenticator.RefreshToken <> '' then
       OAuth2Authenticator.GetNewToken;
 
     if not Authenticated then
       Authenticate();
+
+    if Assigned(FIniFile) then
+      FIniFile.WriteString('Security', 'RefreshToken', OAuth2Authenticator.RefreshToken);
   except
     Result := false;
   end;
 end;
 
-constructor TGoogleAPI.Create(AOwner: TComponent; AClientID, AClientSecret: string);
+constructor TGoogleAPI.Create(AOwner: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
 begin
   FOwner := AOwner;
+  FIniFile := AIniFile;
 
   OAuth2Authenticator := TOAuth2Authenticator.Create(AOwner);
   OAuth2Authenticator.AuthorizationEndpoint := 'https://accounts.google.com/o/oauth2/auth';
@@ -225,7 +235,7 @@ begin
   SRESTRequest.Client := SRESTClient;
   SRESTRequest.Response := SRESTResponse;
 
-  Authenticate;
+  TryAuthenticate;
 end;
 
 function TGoogleAPI.CreateDirectory(AParent, ADirName: string): string;
@@ -724,6 +734,9 @@ begin
       wf.Release;
     end;
     OAuth2Authenticator.ChangeAuthCodeToAccesToken;
+
+    if Assigned(FIniFile) then
+      FIniFile.WriteString('Security', 'RefreshToken', OAuth2Authenticator.RefreshToken);
   end;
 end;
 

@@ -3,7 +3,7 @@ unit MainExecutor;
 interface
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, StdCtrls, StrUtils, System.AnsiStrings,
+  Dialogs, StdCtrls, StrUtils, System.AnsiStrings, IniFiles,
   LocalStorage, CO2MeterConnector, GoogleSender, def;
 type
 
@@ -18,7 +18,7 @@ type
     constructor Create(ASender: TComponent);
     destructor Destroy; override;
 
-    procedure Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string);
+    procedure Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string; AIniFile: TIniFile = nil);
     procedure WorkCycle;
 
     property CO2Meter: TCO2MeterConnector read metr;
@@ -47,7 +47,7 @@ begin
   inherited;
 end;
 
-procedure TMainExecutor.Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string);
+procedure TMainExecutor.Init(AComPort: integer; AClientID, AClientSecret, AStoreFileName: string; AIniFile: TIniFile = nil);
 begin
   sender.Free;
   if metr <> nil then metr.Terminate;
@@ -56,7 +56,7 @@ begin
 
   metr := TCO2MeterConnector.Create;
   metr.ComPort := AComPort;
-  sender := TGoogleSender.Create(FSender, AClientID, AClientSecret);
+  sender := TGoogleSender.Create(FSender, AClientID, AClientSecret, AIniFile);
   storage := TLocalStorage.Create(AStoreFileName);
 end;
 

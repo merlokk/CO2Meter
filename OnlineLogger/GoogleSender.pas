@@ -3,6 +3,7 @@ unit GoogleSender;
 interface
 uses
   System.Classes, SysUtils, Variants, System.AnsiStrings, GoogleAPI, DateUtils,
+  IniFiles,
   def;
 
 type
@@ -19,7 +20,7 @@ type
     procedure ChangeWorkFile(FileDate: TDateTime);
     function SendData1Month(AMeasurements: TMeasurements): boolean;
   public
-    constructor Create(Sender: TComponent; AClientID, AClientSecret: string);
+    constructor Create(Sender: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
 
     function isValidWorkFile: boolean;
     function SendData(AMeasurements: TMeasurements): boolean;
@@ -29,13 +30,13 @@ implementation
 
 { TGoogleSender }
 
-constructor TGoogleSender.Create(Sender: TComponent; AClientID, AClientSecret: string);
+constructor TGoogleSender.Create(Sender: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
 begin
   FFileName := '';
   FFileID := '';
   FMyWorksheet.Clear;
 
-  FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret);
+  FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret, AIniFile);
 end;
 
 function TGoogleSender.isValidWorkFile: boolean;

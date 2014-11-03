@@ -32,6 +32,7 @@ type
   private
     { Private declarations }
     ex: TMainExecutor;
+    FIni: TIniFile;
   public
     { Public declarations }
   end;
@@ -77,7 +78,8 @@ begin
     ex.Init(StrToIntDef(edComPort.Text, 0),
       edClientID.Text,
       edClientSecret.Text,
-      ExtractFilePath(Application.ExeName) + '\storage.txt');
+      ExtractFilePath(Application.ExeName) + '\storage.txt',
+      Fini);
   except
      on E : Exception do
      begin
@@ -107,13 +109,14 @@ procedure TMainFrm.FormCreate(Sender: TObject);
 begin
   ex := nil;
 
-  with TIniFile.Create(ExtractFilePath(Application.ExeName) + 'logger.ini') do
+  FIni := TIniFile.Create(ExtractFilePath(Application.ExeName) + 'logger.ini');
+
+  with FIni do
   try
     edComPort.Text := ReadString('Port', 'COM', '10');
     edClientID.Text := ReadString('GoogleAPI', 'ClientID', '');
     edClientSecret.Text := ReadString('GoogleAPI', 'ClientSecret', '');
-  finally
-    Free;
+  except
   end;
 
   btReloadServer.Click;
