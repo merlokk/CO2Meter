@@ -97,6 +97,10 @@ type
     function TryGetValue(const APath: string): string;
   end;
 
+  TRESTRequestHelper = class helper for TRESTRequest
+    procedure TryExecute(AExecCount: integer);
+  end;
+
 implementation
 
 { TJSONObjectHelper }
@@ -623,7 +627,7 @@ begin
   SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full';
   if AQuery <> '' then SRESTRequest.Params.AddItem('sq', AQuery, pkGETorPOST);
   SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
-  SRESTRequest.Execute;
+  SRESTRequest.TryExecute(2);
   if Assigned(SRESTRequest.Response.JSONValue) then
   begin
     JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
@@ -861,6 +865,23 @@ function TGCell.GetUrlEditTag: string;
 begin
   Result := EditTag;
   if Result = '' then Result := '0';
+end;
+
+{ TRESTRequestHelper }
+
+procedure TRESTRequestHelper.TryExecute(AExecCount: integer);
+var
+  TryCount: integer;
+begin
+  TryCount := 0;
+
+  for TryCount := 1 to AExecCount do
+    try
+      Execute;
+      if (Response.StatusCode >= 200) and (Response.StatusCode < 300) then break;
+    except
+    ;
+    end;
 end;
 
 end.
