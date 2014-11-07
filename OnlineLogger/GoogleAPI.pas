@@ -692,31 +692,43 @@ function TGoogleAPI.AddListRow(AFileID, AWorksheetID: string;
 var
   JSONObject: TJSONObject;
   entry: TJSONObject;
+  TryCount: integer;
 begin
   Result.Clear;
   ClearRESTConnector;
   if not TryAuthenticate then exit;
 
-  SRESTRequest.Method:=rmPOST;
-  SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
+  TryCount := 0;
+  repeat
+    try
+      ClearRESTConnector;
 
-  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
-    ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
-    ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
-    ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
-    ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
-    ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
-    '</entry>',
-    TRESTContentType.ctAPPLICATION_ATOM_XML);
-  SRESTRequest.Execute;
-  if Assigned(SRESTRequest.Response.JSONValue) then
-  begin
-    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+      SRESTRequest.Method:=rmPOST;
+      SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
 
-    entry := JSONObject.GetValue('entry') as TJSONObject;
-    if not Assigned(entry) then exit;
-    Result := ExtractMeasurement(entry);
-  end;
+      SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
+        ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
+        ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
+        ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
+        ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
+        ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
+        '</entry>',
+        TRESTContentType.ctAPPLICATION_ATOM_XML);
+      SRESTRequest.Execute;
+      if Assigned(SRESTRequest.Response.JSONValue) then
+      begin
+        JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
+
+        entry := JSONObject.GetValue('entry') as TJSONObject;
+        if not Assigned(entry) then exit;
+        Result := ExtractMeasurement(entry);
+      end;
+
+      TryCount := 1000; // all is ok
+    except
+      TryCount := TryCount + 1;
+    end;
+  until (TryCount > 2) or (SRESTRequest.Response.StatusCode = 201);
 end;
 
 procedure TGoogleAPI.Authenticate;

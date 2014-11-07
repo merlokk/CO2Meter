@@ -130,13 +130,13 @@ begin
   if ex <> nil then
     try
       // get data statistic
-      StartDate := ex.CO2Meter.GetDataStartDate;
-      lbStatus.Caption := 'Data count:' + IntToStr(ex.CO2Meter.GetDataCount);
+      StartDate := ex.CO2Meter.DataStartDate;
+      lbStatus.Caption := 'Data count:' + IntToStr(ex.CO2Meter.DataCount);
       if StartDate > EncodeDate(2000, 1, 1) then
         lbStatus.Caption := lbStatus.Caption + ' start date:' + DateTimeToStr(StartDate);
 
       // execute sending data
-      if cbExecute.Checked and (ex.CO2Meter.GetDataCount > 0) then
+      if cbExecute.Checked and (ex.CO2Meter.DataCount > 0) then
       begin
         ex.WorkCycle;
         lbStatus.Caption := lbStatus.Caption + #$0D#$0A'Data sent...';

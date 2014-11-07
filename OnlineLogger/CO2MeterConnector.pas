@@ -13,6 +13,10 @@ type
     FInterval: integer; //samples rate
     FMeasurements: TMeasurements;
 
+    FAZLogStartDate,
+    FAZLogEndDate,
+    FLastAZDateGot: TDateTime;
+
     LastMesMade: integer;
     metr: TCO2Meter;
     cs: TCriticalSection;
@@ -27,6 +31,11 @@ type
     function GetDataStartDate: TDateTime;
 
     property ComPort: integer read FComPort write FComPort;
+
+    property AZLogStartDate: TDateTime read FAZLogStartDate;
+    property AZLogEndDate: TDateTime read FAZLogEndDate;
+    property DataStartDate: TDateTime read GetDataStartDate;
+    property DataCount: integer read GetDataCount;
   end;
 
 implementation
@@ -36,6 +45,10 @@ implementation
 constructor TCO2MeterConnector.Create;
 begin
   inherited;
+
+  FAZLogStartDate := 0;
+  FAZLogEndDate := 0;
+  FLastAZDateGot := 0;
 
   LastMesMade := 0;
   FInterval := 60; //300;
@@ -56,11 +69,13 @@ procedure TCO2MeterConnector.Execute;
 var
   i: integer;
   mes: TMeasurement;
+  mesl: TMeasurements;
   secs: integer;
   setDT: TDateTime;
   samplesCount,
   samplesRate: Cardinal;
-  samplesStartDate: TDateTime;
+  samplesStartDate,
+  samplesEndDate: TDateTime;
   samples: TStringList;
 begin
   setDT := 0;
@@ -98,18 +113,61 @@ begin
         if setDT + 60 / MinsPerDay < Now then
         try
           metr.GetMemoryStat(samplesCount, samplesRate, samplesStartDate);
+          samplesEndDate := SamplesStartDate + SamplesRate * (SamplesCount / 3 - 1) / SecsPerDay;
 
-          // if there is no filling memory. With guard interval
-          if (samplesStartDate + (samplesRate * (samplesCount + 1) + 60) / SecsPerDay < Now) then
+          FAZLogStartDate := samplesStartDate;
+          FAZLogEndDate := samplesEndDate;
+
+          // if there is no filling memory. (With guard interval)
+          if (samplesEndDate + 60 / SecsPerDay < Now) or
+             (samplesCount >= CO2METER_MAX_MEM_SAMPLES * 3) then
           begin
-            // get data
-            samples := TStringList.Create;
-            try
-             //metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
-             // normalize samples and put it into queue  {TODO}
-             // start another sampling cycle  {TODO}
-            finally
-              FreeAndNil(samples)
+            //if we have got data - do not get it twice!
+            if FLastAZDateGot < FAZLogEndDate then
+            begin
+              // get data
+              samples := TStringList.Create;
+              try
+                metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+
+                // get samples from string list
+                SetLength(mesl, 0);
+                for i := 0 to samples.Count - 1 do
+                begin
+                  if (length(samples[i]) < 7) or (samples[i][1] <> 'd') then Continue;
+
+                  mes.FromAZLog(samples[i]);
+                  mes.Date := SamplesStartDate + i * integer(SamplesRate) / SecsPerDay;
+                  mes.SetInternalDateFromDate;
+
+                  SetLength(mesl, length(mesl) + 1);
+                  mesl[length(mesl) - 1] := mes;
+                end;
+
+                // sort samples (it is allready sorted, but....)
+                mesl.Sort;
+
+                // normalize samples. each sample must have "date" field according to FInterval
+                mesl.Normalize(FInterval);
+
+                // remove duplicates
+                mesl.MarkDuplicates;
+                mesl.RemoveNullData;
+
+                // add samples
+                for i := 0 to length(mesl) - 1 do
+                begin
+                  SetLength(FMeasurements, length(FMeasurements) + 1);
+                  FMeasurements[length(FMeasurements) - 1] := mesl[i];
+                end;
+
+                FLastAZDateGot := FAZLogEndDate;
+
+                // start another sampling cycle if I can  {TODO}
+
+              finally
+                FreeAndNil(samples)
+              end;
             end;
 
             // set datetime and sampling
