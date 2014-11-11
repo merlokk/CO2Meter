@@ -105,12 +105,12 @@ begin
       bgid := i;
       bgmonth := MonthOfTheYear(AMeasurements[bgid].Date);
 
-      Result := SendData1Month(tmes);
+      Result := Result and SendData1Month(tmes);
     end;
 
   // the last portion of data
   tmes := Copy(AMeasurements, bgid, length(AMeasurements));
-  Result := SendData1Month(tmes);
+  Result := Result and SendData1Month(tmes);
 end;
 
 function TGoogleSender.GetFileName(AFileDate: TDateTime): string;
