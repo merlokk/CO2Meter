@@ -88,7 +88,11 @@ begin
 
   while not Terminated do
   begin
-    if not metr.Connected then metr.OpenPort(FComPort);
+    if not metr.Connected then
+      try
+        metr.OpenPort(FComPort);
+      except
+      end;
 
     if metr.Connected then
     begin
@@ -131,7 +135,7 @@ begin
               // get data
               samples := TStringList.Create;
               try
-            //    metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+                metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
 
                 // get samples from string list
                 SetLength(mesl, 0);
@@ -160,8 +164,13 @@ begin
                 // add samples
                 for i := 0 to length(mesl) - 1 do
                 begin
-                  SetLength(FMeasurements, length(FMeasurements) + 1);
-                  FMeasurements[length(FMeasurements) - 1] := mesl[i];
+                  cs.Enter;
+                  try
+                    SetLength(FMeasurements, length(FMeasurements) + 1);
+                    FMeasurements[length(FMeasurements) - 1] := mesl[i];
+                  finally
+                    cs.Leave;
+                  end;
                 end;
 
                 FLastAZDateGot := FAZLogEndDate;

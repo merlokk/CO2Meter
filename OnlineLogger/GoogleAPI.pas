@@ -862,9 +862,13 @@ begin
   for TryCount := 0 to AExecCount do
     try
       Execute;
-      if (Response.StatusCode >= 200) and (Response.StatusCode < 300) then break;
+      if ((Response.StatusCode >= 200) and (Response.StatusCode < 300)) or
+         (Response.StatusCode = 400)
+      then break;
     except
-      if TryCount = AExecCount then
+      if (Response.StatusCode = 400) or
+         (TryCount = AExecCount)
+      then
         raise;
     end;
 end;
