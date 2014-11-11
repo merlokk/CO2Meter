@@ -170,9 +170,7 @@ begin
 
 end;
 
-
 { TGoogleAPI }
-
 
 procedure TGoogleAPI.TitleChanged(const ATitle: string;
   var DoCloseWebView: boolean);
@@ -381,7 +379,7 @@ begin
   SRESTRequest.Params.AddItem('min-col', IntToStr(AMinCol), pkGETorPOST);
   SRESTRequest.Params.AddItem('max-col', IntToStr(AMaxCol), pkGETorPOST);
   SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
-  SRESTRequest.Execute;
+  SRESTRequest.TryExecute(2);
   if Assigned(SRESTRequest.Response.JSONValue) then
   begin
     JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
@@ -548,7 +546,7 @@ begin
   RESTRequest.Params.AddItem('q', 'mimeType="application/vnd.google-apps.folder" and "' + AParent +
     '" in parents and title="' + ADirName +
     '" and trashed = false', TRESTRequestParameterKind.pkGETorPOST);
-  RESTRequest.Execute;
+  RESTRequest.TryExecute(2);
 
   if Assigned(RESTRequest.Response.JSONValue) then
     begin
@@ -589,7 +587,7 @@ begin
   RESTRequest.Params.AddItem('q', 'mimeType="application/vnd.google-apps.spreadsheet" and "' + ADir +
     '" in parents and title="' + AFileName +
     '" and trashed = false', TRESTRequestParameterKind.pkGETorPOST);
-  RESTRequest.Execute;
+  RESTRequest.TryExecute(2);
 
   if Assigned(RESTRequest.Response.JSONValue) then
     begin
@@ -674,7 +672,7 @@ begin
   SRESTRequest.Method:=rmGET;
   SRESTRequest.Resource:='/worksheets/' + AFileID + '/private/full';
   SRESTRequest.Params.AddItem('alt', 'json', pkGETorPOST);
-  SRESTRequest.Execute;
+  SRESTRequest.TryExecute(2);
   if Assigned(SRESTRequest.Response.JSONValue) then
   begin
     JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
@@ -696,43 +694,31 @@ function TGoogleAPI.AddListRow(AFileID, AWorksheetID: string;
 var
   JSONObject: TJSONObject;
   entry: TJSONObject;
-  TryCount: integer;
 begin
   Result.Clear;
   ClearRESTConnector;
   if not TryAuthenticate then exit;
 
-  TryCount := 0;
-  repeat
-    try
-      ClearRESTConnector;
+  SRESTRequest.Method:=rmPOST;
+  SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
 
-      SRESTRequest.Method:=rmPOST;
-      SRESTRequest.Resource:='/list/' + AFileID + '/' + AWorksheetID + '/private/full?alt=json';
+  SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
+    ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
+    ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
+    ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
+    ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
+    ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
+    '</entry>',
+    TRESTContentType.ctAPPLICATION_ATOM_XML);
+  SRESTRequest.Execute;
+  if Assigned(SRESTRequest.Response.JSONValue) then
+  begin
+    JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
 
-      SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
-        ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
-        ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
-        ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
-        ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
-        ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
-        '</entry>',
-        TRESTContentType.ctAPPLICATION_ATOM_XML);
-      SRESTRequest.Execute;
-      if Assigned(SRESTRequest.Response.JSONValue) then
-      begin
-        JSONObject := SRESTRequest.Response.JSONValue as TJSONObject;
-
-        entry := JSONObject.GetValue('entry') as TJSONObject;
-        if not Assigned(entry) then exit;
-        Result := ExtractMeasurement(entry);
-      end;
-
-      TryCount := 1000; // all is ok
-    except
-      TryCount := TryCount + 1;
-    end;
-  until (TryCount > 2) or (SRESTRequest.Response.StatusCode = 201);
+    entry := JSONObject.GetValue('entry') as TJSONObject;
+    if not Assigned(entry) then exit;
+    Result := ExtractMeasurement(entry);
+  end;
 end;
 
 procedure TGoogleAPI.Authenticate;
@@ -873,14 +859,13 @@ procedure TRESTRequestHelper.TryExecute(AExecCount: integer);
 var
   TryCount: integer;
 begin
-  TryCount := 0;
-
-  for TryCount := 1 to AExecCount do
+  for TryCount := 0 to AExecCount do
     try
       Execute;
       if (Response.StatusCode >= 200) and (Response.StatusCode < 300) then break;
     except
-    ;
+      if TryCount = AExecCount then
+        raise;
     end;
 end;
 

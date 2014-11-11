@@ -20,6 +20,7 @@ type
     LastMesMade: integer;
     metr: TCO2Meter;
     cs: TCriticalSection;
+    function GetConnected: boolean;
 
   public
     constructor Create;
@@ -36,6 +37,8 @@ type
     property AZLogEndDate: TDateTime read FAZLogEndDate;
     property DataStartDate: TDateTime read GetDataStartDate;
     property DataCount: integer read GetDataCount;
+
+    property Connected: boolean read GetConnected;
   end;
 
 implementation
@@ -128,7 +131,7 @@ begin
               // get data
               samples := TStringList.Create;
               try
-                metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+            //    metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
 
                 // get samples from string list
                 SetLength(mesl, 0);
@@ -189,6 +192,11 @@ begin
     for i := 1 to 10 do
       if not Terminated then sleep(50);
   end;
+end;
+
+function TCO2MeterConnector.GetConnected: boolean;
+begin
+  Result := metr.Connected;
 end;
 
 function TCO2MeterConnector.GetData: TMeasurements;

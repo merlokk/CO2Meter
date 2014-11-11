@@ -44,6 +44,14 @@ object MainFrm: TMainFrm
     Height = 35
     AutoSize = False
   end
+  object shCOMState: TShape
+    Left = 224
+    Top = 8
+    Width = 17
+    Height = 16
+    Brush.Color = clRed
+    Shape = stRoundRect
+  end
   object BitBtn2: TBitBtn
     Left = 626
     Top = 169

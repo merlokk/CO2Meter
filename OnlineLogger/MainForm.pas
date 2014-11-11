@@ -23,6 +23,7 @@ type
     Timer1: TTimer;
     lbStatus: TLabel;
     cbExecute: TCheckBox;
+    shCOMState: TShape;
     procedure BitBtn2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -129,6 +130,12 @@ begin
   Timer1.Enabled := false;
   if ex <> nil then
     try
+      // com port connect
+      if ex.CO2Meter.Connected then
+        shCOMState.Brush.Color := clGreen
+      else
+        shCOMState.Brush.Color := clRed;
+
       // get data statistic
       StartDate := ex.CO2Meter.DataStartDate;
       lbStatus.Caption := 'Data count:' + IntToStr(ex.CO2Meter.DataCount);
