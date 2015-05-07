@@ -79,6 +79,11 @@ begin
       begin
         storage.Clear;
         storage.Save;
+      end
+      else
+      begin
+        storage.DeleteMesByIntDate(sender.AddedRecords);
+        storage.Save;
       end;
   except
   end;

@@ -22,6 +22,7 @@ type
     procedure Add(AMArray: TMeasurements);
     function Get: TMeasurements;
     procedure Clear;
+    procedure DeleteMesByIntDate(InternalDates: TIntDatesStack);
   end;
 
 
@@ -55,6 +56,25 @@ begin
   FStoreFileName := AStoreFileName;
 
   Clear;
+end;
+
+procedure TLocalStorage.DeleteMesByIntDate(InternalDates: TIntDatesStack);
+var
+  v: int64;
+  i: integer;
+begin
+  while InternalDates.Count > 0 do
+  begin
+    v := InternalDates.Extract;
+
+    for i := 0 to length(FMesArray) - 1 do
+      if FMesArray[i].InternalDate = v then
+      begin
+        FMesArray[i].InternalDate := 0;
+        break;
+      end;
+    FMesArray.RemoveNullData;
+  end;
 end;
 
 destructor TLocalStorage.Destroy;
@@ -128,14 +148,16 @@ begin
 
   js.AddPair(TJSONPair.Create('list', arr));
 
-   TFile.WriteAllText(FStoreFileName, js.ToString);
+  TFile.WriteAllText(FStoreFileName, js.ToString);
 
-   js.Free;
+  js.Free;
 end;
 
 procedure TLocalStorage.Sort;
 begin
   FMesArray.Sort;
+  FMesArray.MarkDuplicates;
+  FMesArray.RemoveNullData;
 end;
 
 end.

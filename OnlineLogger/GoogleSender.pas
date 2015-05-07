@@ -15,15 +15,20 @@ type
     FFileID: string;
     FMyWorksheet: TWorksheet;
 
+    FAddedRec: TIntDatesStack;
+
     function GetFileName(AFileDate: TDateTime): string;
 
     procedure ChangeWorkFile(FileDate: TDateTime);
     function SendData1Month(AMeasurements: TMeasurements): boolean;
   public
     constructor Create(Sender: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
+    destructor Destroy; override;
 
     function isValidWorkFile: boolean;
     function SendData(AMeasurements: TMeasurements): boolean;
+
+    property AddedRecords: TIntDatesStack read FAddedRec;
   end;
 
 implementation
@@ -36,7 +41,17 @@ begin
   FFileID := '';
   FMyWorksheet.Clear;
 
+  FAddedRec := TIntDatesStack.Create;
+
   FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret, AIniFile);
+end;
+
+destructor TGoogleSender.Destroy;
+begin
+  FAddedRec.Free;
+  FAPI.Free;
+
+  inherited;
 end;
 
 function TGoogleSender.isValidWorkFile: boolean;
@@ -76,6 +91,8 @@ begin
         break;
       end;
     end;
+
+    FAddedRec.Enqueue(AMeasurements[i].InternalDate);
   except
     FFileID := '';
     break;
@@ -92,6 +109,7 @@ var
   tmes: TMeasurements;
 begin
   Result := true;
+  FAddedRec.Clear;
   if length(AMeasurements) = 0 then exit;
 
   // data may be from different months. we separate it.

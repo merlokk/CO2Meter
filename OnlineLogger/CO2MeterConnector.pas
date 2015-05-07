@@ -12,6 +12,7 @@ type
     FComPort: integer;
     FInterval: integer; //samples rate
     FMeasurements: TMeasurements;
+    FCurMeasurement: TMeasurement;
 
     FAZLogStartDate,
     FAZLogEndDate,
@@ -32,6 +33,8 @@ type
     function GetDataStartDate: TDateTime;
 
     property ComPort: integer read FComPort write FComPort;
+
+    property CurrentMeasurement: TMeasurement read FCurMeasurement;
 
     property AZLogStartDate: TDateTime read FAZLogStartDate;
     property AZLogEndDate: TDateTime read FAZLogEndDate;
@@ -56,6 +59,8 @@ begin
   LastMesMade := 0;
   FInterval := 60; //300;
   SetLength(FMeasurements, 0);
+  FCurMeasurement.Clear;
+
   cs := TCriticalSection.Create;
   metr := TCO2Meter.Create;
 end;
@@ -106,6 +111,8 @@ begin
         mes.Date := now;
         mes.InternalDate := (SecondsBetween(mes.Date, EncodeDate(2000, 1, 1)) div FInterval) * FInterval;
 
+        FCurMeasurement := mes;
+
         LastMesMade := mes.InternalDate;
 
         cs.Enter;
@@ -135,7 +142,7 @@ begin
               // get data
               samples := TStringList.Create;
               try
-                metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+                //metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
 
                 // get samples from string list
                 SetLength(mesl, 0);
