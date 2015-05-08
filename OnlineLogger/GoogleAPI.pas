@@ -705,8 +705,8 @@ begin
   SRESTRequest.AddBody('<entry xmlns="http://www.w3.org/2005/Atom" xmlns:gsx="http://schemas.google.com/spreadsheets/2006/extended">' +
     ' <gsx:date>' + FormatDateTime('DD.MM.YYYY HH:NN:SS', AMes.Date) + '</gsx:date>' +
     ' <gsx:internaldate>' + IntToStr(AMes.InternalDate) + '</gsx:internaldate>' +
-    ' <gsx:temperature>' + FloatToStrF(AMes.Temperature, ffFixed, 20, 2) + '</gsx:temperature>' +
-    ' <gsx:humidity>' + FloatToStrF(AMes.Humidity, ffFixed, 20, 2) + '</gsx:humidity>' +
+    ' <gsx:temperature>' + FormatFloat('0.00', AMes.Temperature) + '</gsx:temperature>' +
+    ' <gsx:humidity>' + FormatFloat('0.00', AMes.Humidity) + '</gsx:humidity>' +
     ' <gsx:co2level>' + IntToStr(AMes.CO2Level) + '</gsx:co2level>' +
     '</entry>',
     TRESTContentType.ctAPPLICATION_ATOM_XML);

@@ -15,7 +15,7 @@ type
     FFileID: string;
     FMyWorksheet: TWorksheet;
 
-    FAddedRec: TIntDatesStack;
+    FAddedRec: TIntDatesQueue;
 
     function GetFileName(AFileDate: TDateTime): string;
 
@@ -28,7 +28,7 @@ type
     function isValidWorkFile: boolean;
     function SendData(AMeasurements: TMeasurements): boolean;
 
-    property AddedRecords: TIntDatesStack read FAddedRec;
+    property AddedRecords: TIntDatesQueue read FAddedRec;
   end;
 
 implementation
@@ -41,7 +41,7 @@ begin
   FFileID := '';
   FMyWorksheet.Clear;
 
-  FAddedRec := TIntDatesStack.Create;
+  FAddedRec := TIntDatesQueue.Create;
 
   FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret, AIniFile);
 end;

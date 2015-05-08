@@ -22,7 +22,7 @@ type
     procedure Add(AMArray: TMeasurements);
     function Get: TMeasurements;
     procedure Clear;
-    procedure DeleteMesByIntDate(InternalDates: TIntDatesStack);
+    procedure DeleteMesByIntDate(InternalDates: TIntDatesQueue);
   end;
 
 
@@ -58,7 +58,7 @@ begin
   Clear;
 end;
 
-procedure TLocalStorage.DeleteMesByIntDate(InternalDates: TIntDatesStack);
+procedure TLocalStorage.DeleteMesByIntDate(InternalDates: TIntDatesQueue);
 var
   v: int64;
   i: integer;

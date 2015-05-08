@@ -75,16 +75,12 @@ begin
   mes := storage.Get;
   try
     if length(mes) > 0 then
-      if sender.SendData(mes) then
-      begin
-        storage.Clear;
-        storage.Save;
-      end
-      else
-      begin
-        storage.DeleteMesByIntDate(sender.AddedRecords);
-        storage.Save;
-      end;
+    begin
+      sender.SendData(mes);
+
+      storage.DeleteMesByIntDate(sender.AddedRecords);
+      storage.Save;
+    end;
   except
   end;
 end;

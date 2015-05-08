@@ -37,7 +37,7 @@ type
     procedure RemoveNullData;  // clear entries with InternalDate = 0
   end;
 
-  TIntDatesStack = TQueue<int64>;
+  TIntDatesQueue = TQueue<int64>;
 
 function ExtractFromQuotes(s: string): string;
 
