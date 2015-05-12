@@ -6,34 +6,45 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.AnsiStrings, DateUtils, IniFiles, UITypes,
   REST.Authenticator.OAuth.WebForm.Win, Vcl.StdCtrls, Vcl.Buttons,
-  MainExecutor, GoogleSender, def, Vcl.ExtCtrls;
+  MainExecutor, GoogleSender, def, Vcl.ExtCtrls, Vcl.ComCtrls;
 
 type
   TMainFrm = class(TForm)
-    BitBtn2: TBitBtn;
-    Button1: TButton;
-    Label1: TLabel;
-    edComPort: TEdit;
-    Label2: TLabel;
-    edClientID: TEdit;
-    Label3: TLabel;
-    edClientSecret: TEdit;
-    btSave: TButton;
-    btReloadServer: TButton;
     Timer1: TTimer;
-    lbStatus: TLabel;
-    cbExecute: TCheckBox;
+    TrayIcon1: TTrayIcon;
+    pcMain: TPageControl;
+    TabSheet1: TTabSheet;
+    TabSheet2: TTabSheet;
+    lbCurrentMes: TLabel;
+    edComPort: TEdit;
+    edClientSecret: TEdit;
+    edClientID: TEdit;
     shCOMState: TShape;
+    Label1: TLabel;
+    Label2: TLabel;
+    Label3: TLabel;
+    btReloadServer: TButton;
+    lbStatus: TLabel;
+    Button1: TButton;
+    cbExecute: TCheckBox;
+    BitBtn2: TBitBtn;
+    btSave: TButton;
+    lbCurrentState: TLabel;
+    shGoogleConnect: TShape;
+    Label4: TLabel;
     procedure BitBtn2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btSaveClick(Sender: TObject);
     procedure btReloadServerClick(Sender: TObject);
     procedure Timer1Timer(Sender: TObject);
+    procedure TrayIcon1DblClick(Sender: TObject);
   private
     { Private declarations }
     ex: TMainExecutor;
     FIni: TIniFile;
+
+    isFirstConnect: boolean;
   public
     { Public declarations }
   end;
@@ -109,6 +120,7 @@ end;
 procedure TMainFrm.FormCreate(Sender: TObject);
 begin
   ex := nil;
+  isFirstConnect := true;
 
   FIni := TIniFile.Create(ExtractFilePath(Application.ExeName) + 'logger.ini');
 
@@ -119,6 +131,8 @@ begin
     edClientSecret.Text := ReadString('GoogleAPI', 'ClientSecret', '');
   except
   end;
+
+  pcMain.ActivePageIndex := 0;
 
   btReloadServer.Click;
 end;
@@ -132,9 +146,44 @@ begin
     try
       // com port connect
       if ex.CO2Meter.Connected then
-        shCOMState.Brush.Color := clGreen
+      begin
+        shCOMState.Brush.Color := clGreen;
+
+        if isFirstConnect then
+        begin
+          pcMain.ActivePageIndex := 1;
+          isFirstConnect := false;
+        end;
+      end
       else
         shCOMState.Brush.Color := clRed;
+
+      // google connect
+      if not ex.GoogleSender.Connected then
+        shGoogleConnect.Brush.Color := clRed
+      else
+        if ex.CO2Meter.DataCount < 10 then
+          shGoogleConnect.Brush.Color := clGreen
+        else
+          shGoogleConnect.Brush.Color := clYellow;
+
+
+      // get cuttent measurement
+      if ex.CO2Meter.Connected and
+         (ex.CO2Meter.CurrentMeasurement.InternalDate <> 0)
+      then
+      begin
+        lbCurrentState.Caption := 'Date and time: ' +
+          FormatDateTime('DD.MM.YYYY HH.NN.SS', ex.CO2Meter.CurrentMeasurement.Date);
+        lbCurrentMes.Caption := ex.CO2Meter.CurrentMeasurement.AsString;
+        TrayIcon1.Hint := ex.CO2Meter.CurrentMeasurement.AsString;
+      end
+      else
+      begin
+        lbCurrentState.Caption := '';
+        lbCurrentMes.Caption := '';
+        TrayIcon1.Hint := 'Logger...';
+      end;
 
       // get data statistic
       StartDate := ex.CO2Meter.DataStartDate;
@@ -152,6 +201,11 @@ begin
     except
     end;
   Timer1.Enabled := true;
+end;
+
+procedure TMainFrm.TrayIcon1DblClick(Sender: TObject);
+begin
+  SetForegroundWindow(Self.Handle);
 end;
 
 end.

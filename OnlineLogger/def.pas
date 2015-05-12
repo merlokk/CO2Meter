@@ -24,6 +24,8 @@ type
 
     procedure SetDateFromInternalDate;
     procedure SetInternalDateFromDate;
+
+    function AsString: string;
   end;
 
   TMeasurements = array of TMeasurement;
@@ -53,6 +55,13 @@ begin
 end;
 
 { TMeasurementRec }
+
+function TMeasurement.AsString: string;
+begin
+  Result := IntToStr(CO2Level) + 'ppm ' + #$0D#$0A +
+            FormatFloat('0.00', Temperature) + 'C ' +
+            FormatFloat('0.00', Humidity) + '%';
+end;
 
 procedure TMeasurement.Clear;
 begin

@@ -15,12 +15,14 @@ type
     FFileID: string;
     FMyWorksheet: TWorksheet;
 
+    FLastValidAddDT: TDateTime;
     FAddedRec: TIntDatesQueue;
 
     function GetFileName(AFileDate: TDateTime): string;
 
     procedure ChangeWorkFile(FileDate: TDateTime);
     function SendData1Month(AMeasurements: TMeasurements): boolean;
+    function GetConnected: boolean;
   public
     constructor Create(Sender: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
     destructor Destroy; override;
@@ -29,6 +31,8 @@ type
     function SendData(AMeasurements: TMeasurements): boolean;
 
     property AddedRecords: TIntDatesQueue read FAddedRec;
+    property LastValidAddDT: TDateTime read FLastValidAddDT;
+    property Connected: boolean read GetConnected;
   end;
 
 implementation
@@ -41,6 +45,7 @@ begin
   FFileID := '';
   FMyWorksheet.Clear;
 
+  FLastValidAddDT := 0;
   FAddedRec := TIntDatesQueue.Create;
 
   FAPI := TGoogleAPI.Create(Sender, AClientID, AClientSecret, AIniFile);
@@ -93,6 +98,7 @@ begin
     end;
 
     FAddedRec.Enqueue(AMeasurements[i].InternalDate);
+    FLastValidAddDT := Now;
   except
     FFileID := '';
     break;
@@ -129,6 +135,11 @@ begin
   // the last portion of data
   tmes := Copy(AMeasurements, bgid, length(AMeasurements));
   Result := Result and SendData1Month(tmes);
+end;
+
+function TGoogleSender.GetConnected: boolean;
+begin
+  Result := (Now - FLastValidAddDT) < 10 / MinsPerDay;
 end;
 
 function TGoogleSender.GetFileName(AFileDate: TDateTime): string;
