@@ -21,7 +21,7 @@ object MainFrm: TMainFrm
     Top = 0
     Width = 753
     Height = 233
-    ActivePage = TabSheet2
+    ActivePage = TabSheet1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Config'
@@ -106,9 +106,11 @@ object MainFrm: TMainFrm
       object cbExecute: TCheckBox
         Left = 167
         Top = 175
-        Width = 210
+        Width = 203
         Height = 17
         Caption = 'Auto save to cloud every 10s'
+        Checked = True
+        State = cbChecked
         TabOrder = 5
       end
       object BitBtn2: TBitBtn
@@ -129,6 +131,14 @@ object MainFrm: TMainFrm
         Caption = 'Save config'
         TabOrder = 7
         OnClick = btSaveClick
+      end
+      object cbGetOfflineData: TCheckBox
+        Left = 376
+        Top = 177
+        Width = 233
+        Height = 17
+        Caption = 'Get offline data from AZ'
+        TabOrder = 8
       end
     end
     object TabSheet2: TTabSheet

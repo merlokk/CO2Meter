@@ -13,6 +13,7 @@ type
     FInterval: integer; //samples rate
     FMeasurements: TMeasurements;
     FCurMeasurement: TMeasurement;
+    FGetOfflineData: boolean;
 
     FAZLogStartDate,
     FAZLogEndDate,
@@ -41,6 +42,8 @@ type
     property DataStartDate: TDateTime read GetDataStartDate;
     property DataCount: integer read GetDataCount;
 
+    property GetOfflineData: boolean read FGetOfflineData write FGetOfflineData;
+
     property Connected: boolean read GetConnected;
   end;
 
@@ -60,6 +63,7 @@ begin
   FInterval := 60; //300;
   SetLength(FMeasurements, 0);
   FCurMeasurement.Clear;
+  FGetOfflineData := false;
 
   cs := TCriticalSection.Create;
   metr := TCO2Meter.Create;
@@ -137,12 +141,12 @@ begin
              (samplesCount >= CO2METER_MAX_MEM_SAMPLES * 3) then
           begin
             //if we have got data - do not get it twice!
-            if FLastAZDateGot < FAZLogEndDate then
+            if FGetOfflineData and (FLastAZDateGot < FAZLogEndDate) then
             begin
               // get data
               samples := TStringList.Create;
               try
-                //metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
+                metr.GetSamples(samplesCount, samplesRate, samplesStartDate, samples);
 
                 // get samples from string list
                 SetLength(mesl, 0);

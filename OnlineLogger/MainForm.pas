@@ -32,6 +32,7 @@ type
     lbCurrentState: TLabel;
     shGoogleConnect: TShape;
     Label4: TLabel;
+    cbGetOfflineData: TCheckBox;
     procedure BitBtn2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -92,6 +93,7 @@ begin
       edClientSecret.Text,
       ExtractFilePath(Application.ExeName) + '\storage.txt',
       Fini);
+    ex.CO2Meter.GetOfflineData := cbGetOfflineData.Checked;
   except
      on E : Exception do
      begin
@@ -158,7 +160,7 @@ begin
       else
         shCOMState.Brush.Color := clRed;
 
-      // google connect
+      // google connect state
       if not ex.GoogleSender.Connected then
         shGoogleConnect.Brush.Color := clRed
       else
@@ -167,8 +169,7 @@ begin
         else
           shGoogleConnect.Brush.Color := clYellow;
 
-
-      // get cuttent measurement
+      // get current measurement
       if ex.CO2Meter.Connected and
          (ex.CO2Meter.CurrentMeasurement.InternalDate <> 0)
       then
