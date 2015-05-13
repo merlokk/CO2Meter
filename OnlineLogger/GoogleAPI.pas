@@ -205,6 +205,7 @@ begin
   end;
 end;
 
+// https://developers.google.com/drive/v2/reference/files/update
 function TGoogleAPI.UpdateFile(AFileID, AFileContent, AMimeType: string): string;
 var
   JSONObject: TJSONObject;
@@ -217,7 +218,6 @@ begin
   try
     RESTRequest.Method:=rmPUT;                    //it needs here: newRevision=false
     RESTRequest.Resource:='/files/' + AFileID + '?uploadType=media&alt=json';
-  //  RESTRequest.Params.AddItem('uploadType', 'media', pkURLSEGMENT);
     RESTRequest.AddBody(AFileContent, TRESTContentType.ctTEXT_PLAIN);
 
     RESTRequest.Execute;
@@ -294,6 +294,7 @@ begin
     end;
 end;
 
+// https://developers.google.com/drive/v2/reference/files/insert
 function TGoogleAPI.CreateFile(ADir, AFileName: string; AMimeType: string): string;
 var
   JSONObject: TJSONObject;

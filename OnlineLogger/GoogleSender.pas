@@ -124,10 +124,10 @@ begin
   // get current file
   if FCurFileID = '' then
   begin
-    FCurFileID := FAPI.GetFileID(dirID, 'current', 'plain/text');
+    FCurFileID := FAPI.GetFileID(dirID, 'current', 'text/plain');
     if FCurFileID = '' then
     begin
-      FCurFileID := FAPI.CreateFile(dirID, 'current', 'plain/text');
+      FCurFileID := FAPI.CreateFile(dirID, 'current', 'text/plain');
       Sleep(300);
     end;
   end;
