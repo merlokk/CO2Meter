@@ -70,8 +70,9 @@ type
     function CreateDirectory(AParent, ADirName: string): string;
     function GetDirectoryID(AParent, ADirName: string): string;
 
-    function CreateFile(ADir, AFileName: string): string;
-    function GetFileID(ADir, AFileName: string): string;
+    function CreateFile(ADir, AFileName: string; AMimeType: string = 'application/vnd.google-apps.spreadsheet'): string;
+    function GetFileID(ADir, AFileName: string; AMimeType: string = 'application/vnd.google-apps.spreadsheet'): string;
+    function UpdateFile(AFileID, AFileContent: string; AMimeType: string = 'text/plain'): string;
 
     function GetWorksheetList(AFileID: string): TWorksheets;
     function CreateWorksheet(AFileID, AWorksheetName: string; ARowCount, AColCount: integer): TWorksheet;
@@ -204,6 +205,34 @@ begin
   end;
 end;
 
+function TGoogleAPI.UpdateFile(AFileID, AFileContent, AMimeType: string): string;
+var
+  JSONObject: TJSONObject;
+begin
+  Result := '';
+  ClearRESTConnector;
+  if not TryAuthenticate then exit;
+
+  RESTClient.BaseURL := 'https://www.googleapis.com/upload/drive/v2';
+  try
+    RESTRequest.Method:=rmPUT;                    //it needs here: newRevision=false
+    RESTRequest.Resource:='/files/' + AFileID + '?uploadType=media&alt=json';
+  //  RESTRequest.Params.AddItem('uploadType', 'media', pkURLSEGMENT);
+    RESTRequest.AddBody(AFileContent, TRESTContentType.ctTEXT_PLAIN);
+
+    RESTRequest.Execute;
+
+    if Assigned(RESTRequest.Response.JSONValue) then
+      begin
+        JSONObject := RESTRequest.Response.JSONValue as TJSONObject;
+        Result := JSONObject.TryGetValue('id');
+      end;
+  finally
+    RESTClient.BaseURL := 'https://www.googleapis.com/drive/v2';
+    Result := '';
+  end;
+end;
+
 constructor TGoogleAPI.Create(AOwner: TComponent; AClientID, AClientSecret: string; AIniFile: TIniFile = nil);
 begin
   FOwner := AOwner;
@@ -265,7 +294,7 @@ begin
     end;
 end;
 
-function TGoogleAPI.CreateFile(ADir, AFileName: string): string;
+function TGoogleAPI.CreateFile(ADir, AFileName: string; AMimeType: string): string;
 var
   JSONObject: TJSONObject;
 begin
@@ -278,7 +307,7 @@ begin
   JSONObject := TJSONObject.Create;
   JSONObject.AddPair('title', AFileName);
   JSONObject.AddPair('parents', TJSONArray.Create(TJSONObject.Create(TJSONPair.Create('id', ADir))));
-  JSONObject.AddPair('mimeType', 'application/vnd.google-apps.spreadsheet');
+  JSONObject.AddPair('mimeType', AMimeType);
   RESTRequest.AddBody(JSONObject);
 
   RESTRequest.Execute;
@@ -570,7 +599,7 @@ begin
 
 end;
 
-function TGoogleAPI.GetFileID(ADir, AFileName: string): string;
+function TGoogleAPI.GetFileID(ADir, AFileName: string; AMimeType: string): string;
 var
   JSONObject: TJSONObject;
   kind: string;
@@ -584,7 +613,7 @@ begin
 
   RESTRequest.Method:=rmGET;
   RESTRequest.Resource:='/files';
-  RESTRequest.Params.AddItem('q', 'mimeType="application/vnd.google-apps.spreadsheet" and "' + ADir +
+  RESTRequest.Params.AddItem('q', 'mimeType="' + AMimeType + '" and "' + ADir +
     '" in parents and title="' + AFileName +
     '" and trashed = false', TRESTRequestParameterKind.pkGETorPOST);
   RESTRequest.TryExecute(2);

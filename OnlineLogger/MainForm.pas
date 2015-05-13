@@ -176,8 +176,8 @@ begin
       begin
         lbCurrentState.Caption := 'Date and time: ' +
           FormatDateTime('DD.MM.YYYY HH.NN.SS', ex.CO2Meter.CurrentMeasurement.Date);
-        lbCurrentMes.Caption := ex.CO2Meter.CurrentMeasurement.AsString;
-        TrayIcon1.Hint := ex.CO2Meter.CurrentMeasurement.AsString;
+        lbCurrentMes.Caption := ex.CO2Meter.CurrentMeasurement.AsString2Lines;
+        TrayIcon1.Hint := ex.CO2Meter.CurrentMeasurement.AsString2Lines;
       end
       else
       begin

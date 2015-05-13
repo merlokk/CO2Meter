@@ -81,6 +81,9 @@ begin
       storage.DeleteMesByIntDate(sender.AddedRecords);
       storage.Save;
     end;
+
+    if metr.CurrentMeasurement.InternalDate > 0 then
+      sender.SendCurrentData(metr.CurrentMeasurement)
   except
   end;
 end;

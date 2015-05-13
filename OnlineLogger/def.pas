@@ -25,7 +25,9 @@ type
     procedure SetDateFromInternalDate;
     procedure SetInternalDateFromDate;
 
+    function AsString2Lines: string;
     function AsString: string;
+    function AsJSONString: string;
   end;
 
   TMeasurements = array of TMeasurement;
@@ -56,7 +58,24 @@ end;
 
 { TMeasurementRec }
 
+function TMeasurement.AsJSONString: string;
+var
+  item: TJSONObject;
+begin
+  item := TJSONObject.Create;
+  Serialize(item);
+  Result := item.ToString;
+  item.Free;
+end;
+
 function TMeasurement.AsString: string;
+begin
+  Result := IntToStr(CO2Level) + 'ppm ' +
+            FormatFloat('0.00', Temperature) + 'C ' +
+            FormatFloat('0.00', Humidity) + '%';
+end;
+
+function TMeasurement.AsString2Lines: string;
 begin
   Result := IntToStr(CO2Level) + 'ppm ' + #$0D#$0A +
             FormatFloat('0.00', Temperature) + 'C ' +

@@ -12,7 +12,8 @@ type
     FAPI: TGoogleAPI;
 
     FFileName,
-    FFileID: string;
+    FFileID,
+    FCurFileID: string;
     FMyWorksheet: TWorksheet;
 
     FLastValidAddDT: TDateTime;
@@ -29,6 +30,7 @@ type
 
     function isValidWorkFile: boolean;
     function SendData(AMeasurements: TMeasurements): boolean;
+    function SendCurrentData(AMeasurement: TMeasurement): boolean;
 
     property AddedRecords: TIntDatesQueue read FAddedRec;
     property LastValidAddDT: TDateTime read FLastValidAddDT;
@@ -43,6 +45,7 @@ constructor TGoogleSender.Create(Sender: TComponent; AClientID, AClientSecret: s
 begin
   FFileName := '';
   FFileID := '';
+  FCurFileID := '';
   FMyWorksheet.Clear;
 
   FLastValidAddDT := 0;
@@ -105,6 +108,37 @@ begin
   end;
 
   Result := isValidWorkFile;
+end;
+
+function TGoogleSender.SendCurrentData(AMeasurement: TMeasurement): boolean;
+var
+  dirID: string;
+begin
+  Result := false;
+
+  // get file directory
+  dirID := FAPI.GetDirectoryID('root', 'CO2Meter');
+  if dirID = '' then
+    dirID := FAPI.CreateDirectory('root', 'CO2Meter');
+
+  // get current file
+  if FCurFileID = '' then
+  begin
+    FCurFileID := FAPI.GetFileID(dirID, 'current', 'plain/text');
+    if FCurFileID = '' then
+    begin
+      FCurFileID := FAPI.CreateFile(dirID, 'current', 'plain/text');
+      Sleep(300);
+    end;
+  end;
+
+  if FCurFileID = '' then exit;
+
+  try
+    FAPI.UpdateFile(FCurFileID, AMeasurement.AsJSONString);
+  except
+    FCurFileID := '';
+  end;
 end;
 
 function TGoogleSender.SendData(AMeasurements: TMeasurements): boolean;
