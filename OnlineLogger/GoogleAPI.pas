@@ -216,8 +216,8 @@ begin
 
   RESTClient.BaseURL := 'https://www.googleapis.com/upload/drive/v2';
   try
-    RESTRequest.Method:=rmPUT;                    //it needs here: newRevision=false
-    RESTRequest.Resource:='/files/' + AFileID + '?uploadType=media&alt=json';
+    RESTRequest.Method:=rmPUT;                    //it needs here: newRevision=false but raises HTTP/403
+    RESTRequest.Resource:='/files/' + AFileID + '?uploadType=media&alt=json&newRevision=true';
     RESTRequest.AddBody(AFileContent, TRESTContentType.ctTEXT_PLAIN);
 
     RESTRequest.Execute;

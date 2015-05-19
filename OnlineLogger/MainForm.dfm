@@ -25,8 +25,6 @@ object MainFrm: TMainFrm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Config'
-      ExplicitWidth = 137
-      ExplicitHeight = 58
       object shCOMState: TShape
         Left = 224
         Top = 8
@@ -57,10 +55,10 @@ object MainFrm: TMainFrm
         Caption = 'Google client secret'
       end
       object lbStatus: TLabel
-        Left = 16
-        Top = 128
+        Left = 12
+        Top = 126
         Width = 681
-        Height = 35
+        Height = 57
         AutoSize = False
       end
       object edComPort: TEdit
@@ -86,8 +84,8 @@ object MainFrm: TMainFrm
         TabOrder = 2
       end
       object btReloadServer: TButton
-        Left = 8
-        Top = 90
+        Left = 594
+        Top = 4
         Width = 107
         Height = 25
         Caption = 'Reload server'
@@ -96,7 +94,7 @@ object MainFrm: TMainFrm
       end
       object Button1: TButton
         Left = 8
-        Top = 169
+        Top = 95
         Width = 137
         Height = 25
         Caption = 'Save to cloud once'
@@ -105,17 +103,15 @@ object MainFrm: TMainFrm
       end
       object cbExecute: TCheckBox
         Left = 167
-        Top = 175
+        Top = 99
         Width = 203
         Height = 17
         Caption = 'Auto save to cloud every 10s'
-        Checked = True
-        State = cbChecked
         TabOrder = 5
       end
       object BitBtn2: TBitBtn
-        Left = 626
-        Top = 169
+        Left = 498
+        Top = 4
         Width = 75
         Height = 25
         Caption = 'sender'
@@ -134,8 +130,8 @@ object MainFrm: TMainFrm
       end
       object cbGetOfflineData: TCheckBox
         Left = 376
-        Top = 177
-        Width = 233
+        Top = 99
+        Width = 197
         Height = 17
         Caption = 'Get offline data from AZ'
         TabOrder = 8
@@ -144,8 +140,6 @@ object MainFrm: TMainFrm
     object TabSheet2: TTabSheet
       Caption = 'State'
       ImageIndex = 1
-      ExplicitLeft = 188
-      ExplicitWidth = 697
       object lbCurrentMes: TLabel
         Left = 3
         Top = 25

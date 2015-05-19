@@ -109,6 +109,8 @@ begin
     WriteString('Port', 'COM', edComPort.Text);
     WriteString('GoogleAPI', 'ClientID', edClientID.Text);
     WriteString('GoogleAPI', 'ClientSecret', edClientSecret.Text);
+    WriteBool('Config', 'Execute', cbExecute.Checked);
+    WriteBool('Config', 'GetOfflineData', cbGetOfflineData.Checked);
   finally
     Free;
   end;
@@ -131,6 +133,8 @@ begin
     edComPort.Text := ReadString('Port', 'COM', '10');
     edClientID.Text := ReadString('GoogleAPI', 'ClientID', '');
     edClientSecret.Text := ReadString('GoogleAPI', 'ClientSecret', '');
+    cbExecute.Checked := ReadBool('Config', 'Execute', false);
+    cbGetOfflineData.Checked := ReadBool('Config', 'GetOfflineData', false);
   except
   end;
 
