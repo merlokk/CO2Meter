@@ -4,7 +4,7 @@ object MainFrm: TMainFrm
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'Online logger'
-  ClientHeight = 237
+  ClientHeight = 252
   ClientWidth = 763
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -20,11 +20,12 @@ object MainFrm: TMainFrm
     Left = 8
     Top = 0
     Width = 753
-    Height = 233
+    Height = 249
     ActivePage = TabSheet1
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Config'
+      ExplicitHeight = 206
       object shCOMState: TShape
         Left = 224
         Top = 8
@@ -55,8 +56,8 @@ object MainFrm: TMainFrm
         Caption = 'Google client secret'
       end
       object lbStatus: TLabel
-        Left = 12
-        Top = 126
+        Left = 17
+        Top = 154
         Width = 681
         Height = 57
         AutoSize = False
@@ -93,17 +94,17 @@ object MainFrm: TMainFrm
         OnClick = btReloadServerClick
       end
       object Button1: TButton
-        Left = 8
-        Top = 95
-        Width = 137
+        Left = 17
+        Top = 123
+        Width = 184
         Height = 25
         Caption = 'Save to cloud once'
         TabOrder = 4
         OnClick = Button1Click
       end
       object cbExecute: TCheckBox
-        Left = 167
-        Top = 99
+        Left = 17
+        Top = 100
         Width = 203
         Height = 17
         Caption = 'Auto save to cloud every 10s'
@@ -121,7 +122,7 @@ object MainFrm: TMainFrm
       end
       object btSave: TButton
         Left = 594
-        Top = 95
+        Top = 123
         Width = 107
         Height = 25
         Caption = 'Save config'
@@ -129,17 +130,26 @@ object MainFrm: TMainFrm
         OnClick = btSaveClick
       end
       object cbGetOfflineData: TCheckBox
-        Left = 376
-        Top = 99
+        Left = 216
+        Top = 100
         Width = 197
         Height = 17
         Caption = 'Get offline data from AZ'
         TabOrder = 8
       end
+      object cbFlushOfflineData: TCheckBox
+        Left = 215
+        Top = 127
+        Width = 225
+        Height = 17
+        Caption = 'Don'#39't wait to fill offline data buffer'
+        TabOrder = 9
+      end
     end
     object TabSheet2: TTabSheet
       Caption = 'State'
       ImageIndex = 1
+      ExplicitHeight = 202
       object lbCurrentMes: TLabel
         Left = 3
         Top = 25

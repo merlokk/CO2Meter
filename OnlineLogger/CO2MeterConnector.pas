@@ -13,7 +13,8 @@ type
     FInterval: integer; //samples rate
     FMeasurements: TMeasurements;
     FCurMeasurement: TMeasurement;
-    FGetOfflineData: boolean;
+    FGetOfflineData,
+    FFlushOfflineData: boolean;
 
     FAZLogStartDate,
     FAZLogEndDate,
@@ -43,6 +44,7 @@ type
     property DataCount: integer read GetDataCount;
 
     property GetOfflineData: boolean read FGetOfflineData write FGetOfflineData;
+    property FlushOfflineData: boolean read FFlushOfflineData write FFlushOfflineData;
 
     property Connected: boolean read GetConnected;
   end;
@@ -64,6 +66,7 @@ begin
   SetLength(FMeasurements, 0);
   FCurMeasurement.Clear;
   FGetOfflineData := false;
+  FFlushOfflineData := false;
 
   cs := TCriticalSection.Create;
   metr := TCO2Meter.Create;
@@ -127,7 +130,7 @@ begin
           cs.Leave;
         end;
 
-        // sync clock and get offline data {TODO}
+        // sync clock and get offline data
         if setDT + 60 / MinsPerDay < Now then
         try
           metr.GetMemoryStat(samplesCount, samplesRate, samplesStartDate);
@@ -138,7 +141,8 @@ begin
 
           // if there is no filling memory. (With guard interval)
           if (samplesEndDate + 60 / SecsPerDay < Now) or
-             (samplesCount >= CO2METER_MAX_MEM_SAMPLES * 3) then
+             (samplesCount >= CO2METER_MAX_MEM_SAMPLES * 3) or
+             FFlushOfflineData then
           begin
             //if we have got data - do not get it twice!
             if FGetOfflineData and (FLastAZDateGot < FAZLogEndDate) then
@@ -196,6 +200,7 @@ begin
             // set datetime and sampling
             setDT := Now;
             metr.SetDateTime(setDT);
+            sleep(100);
             metr.SetSamplingRate(FInterval);
           end;
         except

@@ -33,6 +33,7 @@ type
     shGoogleConnect: TShape;
     Label4: TLabel;
     cbGetOfflineData: TCheckBox;
+    cbFlushOfflineData: TCheckBox;
     procedure BitBtn2Click(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -94,6 +95,7 @@ begin
       ExtractFilePath(Application.ExeName) + '\storage.txt',
       Fini);
     ex.CO2Meter.GetOfflineData := cbGetOfflineData.Checked;
+    ex.CO2Meter.FlushOfflineData := cbFlushOfflineData.Checked;
   except
      on E : Exception do
      begin
@@ -104,15 +106,15 @@ end;
 
 procedure TMainFrm.btSaveClick(Sender: TObject);
 begin
-  with TIniFile.Create(ExtractFilePath(Application.ExeName) + 'logger.ini') do
+  with FIni do
   try
     WriteString('Port', 'COM', edComPort.Text);
     WriteString('GoogleAPI', 'ClientID', edClientID.Text);
     WriteString('GoogleAPI', 'ClientSecret', edClientSecret.Text);
     WriteBool('Config', 'Execute', cbExecute.Checked);
     WriteBool('Config', 'GetOfflineData', cbGetOfflineData.Checked);
-  finally
-    Free;
+    WriteBool('Config', 'FlushOfflineData', cbFlushOfflineData.Checked);
+  except
   end;
 end;
 
@@ -135,6 +137,7 @@ begin
     edClientSecret.Text := ReadString('GoogleAPI', 'ClientSecret', '');
     cbExecute.Checked := ReadBool('Config', 'Execute', false);
     cbGetOfflineData.Checked := ReadBool('Config', 'GetOfflineData', false);
+    cbFlushOfflineData.Checked := ReadBool('Config', 'FlushOfflineData', false);
   except
   end;
 
