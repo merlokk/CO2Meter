@@ -1,0 +1,30 @@
+!-- Use a templated HTML printing scriptlet to import common stylesheet. --
+!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); 
+html
+  head
+  meta charset=utf-8
+  meta name=viewport content=width=device-width, initial-scale=1
+  link rel=stylesheet href=httpmaxcdn.bootstrapcdn.combootstrap3.3.4cssbootstrap.min.css
+  script src=httpsajax.googleapis.comajaxlibsjquery1.11.3jquery.min.jsscript
+  script src=httpmaxcdn.bootstrapcdn.combootstrap3.3.4jsbootstrap.min.jsscript
+  head
+  
+  body
+    div class=rowdiv class=col-xs-6 col-md-4 
+      h1AZ 7798 CO2 dataloggerh1
+    divdiv
+     
+    div class=hidden alert alert-danger role=alert id=error-message
+      Verify that you have permission to access current file from CO2Meter folder.
+    div
+    
+    h1 id=main-headingLoading...h1
+    div class=block result-display id=results
+    div   
+ 
+  body
+html
+
+
+!-- Use a templated HTML printing scriptlet to import JavaScript. --
+!= HtmlService.createHtmlOutputFromFile('JavaScript').getContent(); 
