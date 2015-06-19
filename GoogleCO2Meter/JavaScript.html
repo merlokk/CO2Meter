@@ -1,4 +1,5 @@
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="https://www.google.com/jsapi"></script>
 
 <script>
   function getData() {
@@ -13,7 +14,9 @@
               // Respond to failure conditions here.
               $('#main-heading').text(msg);
               $('#main-heading').addClass("error");
+              $('#error-message').removeClass('hidden');
               $('#error-message').show();
+              $('#results-block').hide();
             })
          .getContent();
     });
@@ -34,11 +37,11 @@
   function updateDisplay(contents) {
     $('#main-heading').hide();
     $('#error-message').hide();
+    $('#results-block').removeClass('hidden');
+    $('#results-block').show();
     $('#results').empty();
 
     var c = $.parseJSON(contents);
-    var panel = '<div class="row"><div class="col-xs-6 col-md-4"> <div class="panel panel-default"><div class="panel-heading">' +
-      '<h3 class="panel-title">CO2 meter online data</h3></div><div class="panel-body">';
     if ($.isNumeric(c.idate) && (c.idate > 0)) {
       var co2levelclass = '';
       if (c.co2level > 800) co2levelclass = 'warning';
@@ -52,17 +55,14 @@
       if (tsec - c.idate > 180) dateclass = 'warning';
       if (tsec - c.idate > 600) dateclass = 'danger';
       
-      panel = panel + '<table class="table table-striped">' + 
+      $('#results').append('<table class="table table-striped">' + 
           '<tr class="' + co2levelclass + '"><td>CO2 level</td><td>' + c.co2level + 'ppm</td></tr>' +
           '<tr><td>Temperature</td><td>' + c.temperature + '&deg;C</td></tr>' +
           '<tr><td>Humidity</td><td>' + c.humidity + '%</td></tr>' +
-          '<tr class="' + dateclass + '"><td>Updated</td><td>' + c.date + ' (' + (tsec - c.idate) + ' sec ago)</td></tr></table>';
+          '<tr class="' + dateclass + '"><td>Updated</td><td>' + c.date + ' (' + (tsec - c.idate) + ' sec ago)</td></tr></table>');
     } else {
-      panel = panel + 'No data from datalogger.';
+      $('#results').append('No data from datalogger.');
     }
-    panel = panel + '</div></div></div></div>';
 
-    $('#results').append(panel);
-    
   }
 </script>
