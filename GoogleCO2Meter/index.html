@@ -1,30 +1,51 @@
-!-- Use a templated HTML printing scriptlet to import common stylesheet. --
-!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); 
-html
-  head
-  meta charset=utf-8
-  meta name=viewport content=width=device-width, initial-scale=1
-  link rel=stylesheet href=httpmaxcdn.bootstrapcdn.combootstrap3.3.4cssbootstrap.min.css
-  script src=httpsajax.googleapis.comajaxlibsjquery1.11.3jquery.min.jsscript
-  script src=httpmaxcdn.bootstrapcdn.combootstrap3.3.4jsbootstrap.min.jsscript
-  head
+<!-- Use a templated HTML printing scriptlet to import common stylesheet. -->
+<?!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); ?>
+<html>
+  <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+  </head>
   
-  body
-    div class=rowdiv class=col-xs-6 col-md-4 
-      h1AZ 7798 CO2 dataloggerh1
-    divdiv
+  <body>
+    <div class="row"><div class="col-xs-6 col-md-4"> 
+      <h1>AZ 7798 CO2 datalogger</h1>
+    </div></div>
      
-    div class=hidden alert alert-danger role=alert id=error-message
-      Verify that you have permission to access current file from CO2Meter folder.
-    div
+    <div class="hidden alert alert-danger" role="alert" id="error-message">
+      Verify that you have permission to access "current" file from "CO2Meter" folder.
+    </div>
     
-    h1 id=main-headingLoading...h1
-    div class=block result-display id=results
-    div   
- 
-  body
-html
+    <h1 id="main-heading">Loading...</h1>
+    
+    <div class="hidden row" id="results-block">
+      <div class="col-xs-6 col-md-4"> 
+        <div class="panel panel-default">
+          <div class="panel-heading"><h3 class="panel-title">CO2 meter online data</h3></div>
+          <div class="panel-body">
+          
+            <div class="block result-display" id="results"></div>   
+          
+          </div>
+        </div>
+      </div>
+      <div class="col-xs-3 col-md-2"> 
+        <div class="panel panel-default">
+          <div class="panel-heading"><h3 class="panel-title">Get offline data</h3></div>
+          <div class="panel-body">
+          
+           <input size="16" type="text" value="2012-06-15" class="form_datetime">
+
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </body>
+</html>
 
 
-!-- Use a templated HTML printing scriptlet to import JavaScript. --
-!= HtmlService.createHtmlOutputFromFile('JavaScript').getContent(); 
+<!-- Use a templated HTML printing scriptlet to import JavaScript. -->
+<?!= HtmlService.createHtmlOutputFromFile('JavaScript').getContent(); ?>
