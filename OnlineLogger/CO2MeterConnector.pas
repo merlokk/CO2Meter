@@ -115,6 +115,7 @@ begin
         // add online data to list
         mes.Clear;
         metr.GetCurrentMeasurement(mes.Temperature, mes.CO2Level, mes.Humidity);
+        mes.Date := now;
         mes.InternalDate := (SecondsBetween(mes.Date, EncodeDate(2000, 1, 1)) div FInterval) * FInterval;
         mes.SetDateFromInternalDate; // not now! according to FInterval!
 
