@@ -102,22 +102,41 @@ function MakeMesJSON(row){
 function getHistory(intDate1, intDate2, cntPoints) {
   var res = [];
 
+  var dates = [];
   var date1 = AZToDate(intDate1); 
+  var date2 = AZToDate(intDate2); 
   Logger.log(intDate1.toString() + ' ' + typeof(date1) + ':' + date1);
   
-  var ss = GetSpreadsheet(date1);
-  
-  var sheet = ss.getSheetByName("CO2Data");
-  ss.setActiveSheet(sheet);
-  
-  var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
-  
-  var rval = range.getValues();
-  for(var i = 1; i < rval.length; i++) {
-    if ((rval[i][1] > intDate1) && (rval[i][1] < intDate2)) {
-      res.push(rval[i]);
-    }
+  var vdate = date1;
+  vdate.setUTCDate(02);
+  dates.push(vdate);
+
+  while ((vdate.getMonth() != date2.getMonth()) || (vdate.getFullYear() < date2.getFullYear())) {
+    dates.push(new Date(vdate));
+    vdate.setUTCMonth(vdate.getUTCMonth() + 1);
   }
+  
+  dates.forEach(function(date) {
+    try {
+      var ss = GetSpreadsheet(date);
+  
+      var sheet = ss.getSheetByName("CO2Data");
+      ss.setActiveSheet(sheet);
+  
+      var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+  
+      var rval = range.getValues();
+      for(var i = 1; i < rval.length; i++) {
+        if ((rval[i][1] > intDate1) && (rval[i][1] < intDate2)) {
+          res.push(rval[i]);
+        }
+      }
+      Logger.log('data (' + Utilities.formatDate(date, "UTC", 'YYYY_MM') + ') len:' + res.length);
+    }
+    catch(err) { 
+      Logger.log('Error getting month(' + Utilities.formatDate(date, "UTC", 'YYYY_MM_dd') + '): ' + err.message);
+    }
+  });
   
   // sort data
   res.sort(function(a, b){return a[1] - b[1]});
