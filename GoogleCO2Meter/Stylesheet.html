@@ -1,7 +1,20 @@
 <!-- This CSS package applies Google styling; it should always be included. -->
-<link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css">
+<!--link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons.css"-->
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.14.30/css/bootstrap-datetimepicker.min.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
 
 <style>
+@font-face {
+  font-family: 'Glyphicons Halflings2';
+
+  src: url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.eot');
+  src: url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.woff2') format('woff2'), url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.5/fonts/glyphicons-halflings-regular.svg#glyphicons_halflingsregular') format('svg');
+}
+.glyphicon {
+  font-family: 'Glyphicons Halflings2' !important;
+}
+
 .result-display {
   margin-left: 15px;
   font-size: 125%;
@@ -15,4 +28,9 @@
   display: none;
 }
 
+body{
+   min-width:300px; /* suppose you want minimun width of 1000px */
+   width: auto !important;  /* Firefox will set width as auto */
+   width:300px;             /* As IE ignores !important it will set width as 1000px; */
+}
 </style>

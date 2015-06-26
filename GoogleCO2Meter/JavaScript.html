@@ -1,21 +1,66 @@
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="https://www.google.com/jsapi"></script>
 
 <script>
+  // init
+  google.load('visualization', '1', {packages: ['corechart', 'line']});
+  
+  // close alert blocks
+  $(function() {
+    $(document).on('click', '.alert-close', function() {
+      $(this).parent().hide();
+    })
+  });
+  
+  // var
+  var vTimer;
+  var alertTimerOK;
+  var alertTimerError;
+
+  // library
+  function NormalizeDate(din) {
+    return new Date(Date.UTC(din.getFullYear(), din.getMonth(), din.getDate(),  din.getHours(), din.getMinutes(), din.getSeconds()));
+  }
+
+  function DeNormalizeDate(din) {
+    return new Date(din.getUTCFullYear(), din.getUTCMonth(), din.getUTCDate(),  din.getUTCHours(), din.getUTCMinutes(), din.getUTCSeconds());
+  }
+  
+  function DateToAZ(date){
+      return ((NormalizeDate(date) - new Date(Date.UTC(2000, 00, 01))) / 1000) >> 0;
+  }
+  
+  function AZToDate(intDate){
+    return DeNormalizeDate(new Date(Date.UTC(2000, 00, 01) + intDate * 1000));
+  }
+
+  function HideWithTimeout(elm, timeout){
+    clearTimeout(vTimer);
+    vTimer = setTimeout('$("' + elm + '").hide()', timeout);  
+  }
+
+  function ShowOKMessage(msg){
+    $('#ok-message-text').html(msg);
+    $('#ok-message').show();
+    clearTimeout(alertTimerOK);
+    alertTimerOK = setTimeout('$("#ok-message").hide()', 3000);  
+  }
+  
+  function ShowErrorMessage(msg){
+    $('#error-message-text').html(msg);
+    $('#error-message').show();
+    clearTimeout(alertTimerError);
+    alertTimerError = setTimeout('$("#error-message").hide()', 10000);  
+  }
+  
+  // get realtime data
   function getData() {
     $(function() {
-      // Call the server here to retrieve any information needed to build the page.
       google.script.run
          .withSuccessHandler(function(contents) {
-              // Respond to success conditions here.
               updateDisplay(contents);
             })
          .withFailureHandler(function(msg) {
-              // Respond to failure conditions here.
-              $('#main-heading').text(msg);
-              $('#main-heading').addClass("error");
-              $('#error-message').removeClass('hidden');
-              $('#error-message').show();
+              ShowErrorMessage('Get realtime data error: ' + msg);
               $('#results-block').hide();
             })
          .getContent();
@@ -28,16 +73,8 @@
     setInterval('getData()',10000);  
   });  
 
-  /**
-   * Updates display.
-   *
-   * @param {Object} contents none)
-   *
-   */
   function updateDisplay(contents) {
     $('#main-heading').hide();
-    $('#error-message').hide();
-    $('#results-block').removeClass('hidden');
     $('#results-block').show();
     $('#results').empty();
 
@@ -47,9 +84,7 @@
       if (c.co2level > 800) co2levelclass = 'warning';
       if (c.co2level > 2000) co2levelclass = 'danger';
       
-      var now = new Date();
-      var tsec = ((now - new Date('2000-01-01T00:00:00Z')) / 1000) >> 0;
-      tsec = tsec - now.getTimezoneOffset() * 60; // correct timezone
+      var tsec = DateToAZ(new Date());
       
       var dateclass = '';
       if (tsec - c.idate > 180) dateclass = 'warning';
@@ -65,4 +100,101 @@
     }
 
   }
+
+  function showChart(contents) {
+    $('#main-heading').hide();
+    $('#error-message').hide();
+    $('#progress-bar').hide();
+    $('#results-chart').empty();
+    
+    console.log('chart data len: ' + contents.length);
+
+    var data = new google.visualization.DataTable();
+    data.addColumn('datetime', 'Date');
+    data.addColumn('number', 'Temperature');
+    data.addColumn('number', 'Humidity');
+    data.addColumn('number', 'CO2 level');
+
+    contents.forEach(function(elm) { 
+      data.addRow([
+        AZToDate(elm[1]), 
+        parseFloat(elm[2].replace(',', '.')), 
+        parseFloat(elm[3].replace(',', '.')), 
+        elm[4]]);
+    });
+
+    var options = {
+      hAxis: {
+        format: 'dd.MM HH:mm'
+      },
+      vAxis: {
+        minValue: 0,
+        viewWindow: {
+          min: 0
+        },        
+      },
+      colors: ['#FF9933', '#FF66CC', '#0066FF'],
+      series: {
+        0: {targetAxisIndex: 0},
+        1: {targetAxisIndex: 0},
+        2: {targetAxisIndex: 1}
+      },
+      vAxes: {
+        0: {title: 'Temperature/Humidity'},
+        1: {title: 'CO2 level'}
+      },
+    };
+
+    var chart = new google.visualization.LineChart(document.getElementById('results-chart'));
+    chart.draw(data, options);    
+    
+    console.log('chart ok');
+  }
+
+  function getHistoryData() {
+    try{
+      $('#history-block').show();
+      $('#history-paneltitle').text(
+        'History from ' + $('#datetimepicker1').data('DateTimePicker').date().format('DD.MM.YYYY HH:mm') +
+        ' to ' + $('#datetimepicker2').data('DateTimePicker').date().format('DD.MM.YYYY HH:mm') ); 
+      $('#results-chart').empty();
+      $('#progress-bar').show();
+      google.script.run
+         .withSuccessHandler(function(hisdata) {
+              showChart(hisdata);
+            })
+         .withFailureHandler(function(msg) {
+              ShowErrorMessage('History data server error: ' + msg);
+              $('#progress-bar').hide();
+              $('#history-block').hide();
+            })
+         .getHistory(
+           DateToAZ($('#datetimepicker1').data('DateTimePicker').date().toDate()), 
+           DateToAZ($('#datetimepicker2').data('DateTimePicker').date().toDate()),
+           300);
+    }
+    catch(err) { 
+      ShowErrorMessage('Get history data error: ' + err.message);
+    }
+  }
+
+  function executeOptimization() {
+    try{
+      google.script.run
+         .withSuccessHandler(function(hisdata) {
+              ShowOKMessage('<strong>Optimization for month ' + 
+                $('#datetimepickera').data('DateTimePicker').date().format('MM.YYYY') + ' is completed!</strong>');
+            })
+         .withFailureHandler(function(msg) {
+              ShowErrorMessage('Optimization server error: ' + msg);
+            })
+         .deleteDuplicates(
+           DateToAZ($('#datetimepickera').data('DateTimePicker').date().toDate()),
+           $('#cbDeleteDuplicates').is(":checked"));
+    }
+    catch(err) { 
+      ShowErrorMessage('Optimization client error: ' + err.message);
+    }
+  }
+  
 </script>

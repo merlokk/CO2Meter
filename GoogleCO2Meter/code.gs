@@ -3,7 +3,7 @@ function doGet(e) {
   
   // Build and return HTML in IFRAME sandbox mode.
   return template.evaluate()
-      .setSandboxMode(HtmlService.SandboxMode.NATIVE)
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
       .setTitle('CO2Meter panel');
 }
 
@@ -23,4 +23,121 @@ function getContent() {
       
 //  Logger.log('cnt: %s', content);
   return content;
+}
+
+function GetSpreadsheet(date){
+  var spreadsheet;
+
+  var folders = DriveApp.getFoldersByName('CO2Meter'); 
+  if (folders.hasNext()){
+    var folder = folders.next();
+    var fileName = Utilities.formatDate(date, "UTC", 'YYYY_MM');
+//    fileName = 'C' + fileName;
+    var files = folder.getFilesByName(fileName);
+    if (files.hasNext()) {
+      var file = files.next();
+      spreadsheet = SpreadsheetApp.open(file);
+      Logger.log('Opened spreadsheet: %s', spreadsheet.getId());
+      return spreadsheet;
+    } else {
+      Logger.log('Cant found a file "%s"!', fileName);
+      throw new Error('Cant found a file "' + fileName + '"!');
+    }
+  } else {
+    Logger.log('Cant found a folder');
+    throw new Error('Cant found a folder');
+  }
+  
+  return spreadsheet; 
+}
+
+function deleteDuplicates(intDate, deleteDuplicates){
+  date = AZToDate(intDate); 
+  var ss = GetSpreadsheet(date);
+  
+  var sheet = ss.getSheetByName("CO2Data");
+  ss.setActiveSheet(sheet);
+  
+  // get range withouth header row (id=1)
+  var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+  Logger.log('range: %s, %s', range.getA1Notation(), range.getHeight());
+  
+  // sort by column "InternalDate"
+  range.sort({column: 2, ascending: true});
+  
+  // find duplicates
+  var duplicates = [];
+  var rval = range.getValues();
+  for(var i = 1; i < rval.length; i++) {
+    if (rval[i][1] == rval[i - 1][1]) {
+      duplicates.push(i);
+    }
+  }
+  
+  // delete duplicates (or mark)
+  for (var i = duplicates.length - 1; i >= 0; --i) {
+    Logger.log('err: %s', duplicates[i]);
+
+    if (deleteDuplicates){
+      // delete duplicates
+      sheet.deleteRow(duplicates[i] + 1);
+    } else {
+      var cell = range.getCell(duplicates[i], 2);
+      cell.setBackground("red");
+    }
+  };
+
+  // save all the work 
+  SpreadsheetApp.flush();
+}
+
+function AZToDate(intDate){
+  return new Date(Date.UTC(2000, 00, 01) + intDate * 1000);
+}
+
+function MakeMesJSON(row){
+  return '{"date":"' + row[0] + '","idate":"' + row[1] + '","temperature":"' + row[2] + '","co2level":"' + row[4] + '","humidity":"' + row[3] + '"}';
+}
+
+function getHistory(intDate1, intDate2, cntPoints) {
+  var res = [];
+
+  var date1 = AZToDate(intDate1); 
+  Logger.log(intDate1.toString() + ' ' + typeof(date1) + ':' + date1);
+  
+  var ss = GetSpreadsheet(date1);
+  
+  var sheet = ss.getSheetByName("CO2Data");
+  ss.setActiveSheet(sheet);
+  
+  var range = sheet.getRange(2, 1, sheet.getLastRow() - 1, 5);
+  
+  var rval = range.getValues();
+  for(var i = 1; i < rval.length; i++) {
+    if ((rval[i][1] > intDate1) && (rval[i][1] < intDate2)) {
+      res.push(rval[i]);
+    }
+  }
+  
+  // sort data
+  res.sort(function(a, b){return a[1] - b[1]});
+  
+  // if we need to remove some data
+  if (res.length <= cntPoints) {
+    return res;
+  } else {
+    // delete some data here
+    var fres = [];
+    var sum = 0.0;
+    var delta = res.length / cntPoints;
+    
+    for(var i = 1; i < res.length; i++) {
+      if (i > sum) {
+        fres.push(res[i]);
+        sum = sum + delta;
+      }
+    }
+  
+    return fres;
+  }
 }

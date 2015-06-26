@@ -1,51 +1,141 @@
 <!-- Use a templated HTML printing scriptlet to import common stylesheet. -->
 <?!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); ?>
 <html>
-  <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-  </head>
+  <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1">
   
-  <body>
-    <div class="row"><div class="col-xs-6 col-md-4"> 
-      <h1>AZ 7798 CO2 datalogger</h1>
-    </div></div>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+  
+  <script src="//cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment-with-locales.min.js"></script>
+  
+  <script src="//cdn.rawgit.com/Eonasdan/bootstrap-datetimepicker/a549aa8780dbda16f6cff545aeabc3d71073911e/src/js/bootstrap-datetimepicker.js"></script>  
+
+
+  <div class="row"><div class="col-xs-12 col-sm-12 col-md-12 text-center"> 
+    <h1>AZ 7798 CO2 datalogger</h1>
+  </div></div>
      
-    <div class="hidden alert alert-danger" role="alert" id="error-message">
-      Verify that you have permission to access "current" file from "CO2Meter" folder.
-    </div>
+  <div class="alert alert-success collapse" role="alert" id="ok-message">
+    <a href="#" class="close alert-close" aria-label="close">&times;</a>
+    <div id="ok-message-text"> <strong>OK!</strong> </div>
+  </div>
+  <div class="alert alert-danger collapse" role="alert" id="error-message">
+    <a href="#" class="close alert-close" aria-label="close">&times;</a>
+    <div id="error-message-text">Verify that you have permission to access "current" file from "CO2Meter" folder.</div>
+  </div>
     
-    <h1 id="main-heading">Loading...</h1>
-    
-    <div class="hidden row" id="results-block">
-      <div class="col-xs-6 col-md-4"> 
-        <div class="panel panel-default">
-          <div class="panel-heading"><h3 class="panel-title">CO2 meter online data</h3></div>
-          <div class="panel-body">
+  <div class="col-xs-12 col-sm-6 col-md-4"> 
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3 class="panel-title">CO2 meter online data</h3></div>
+      <div class="panel-body">
           
-            <div class="block result-display" id="results"></div>   
-          
-          </div>
+        <h1 id="main-heading">Loading...</h1>
+        <div class="" id="results-block">
+          <div class="block result-display" id="results"></div>   
         </div>
-      </div>
-      <div class="col-xs-3 col-md-2"> 
-        <div class="panel panel-default">
-          <div class="panel-heading"><h3 class="panel-title">Get offline data</h3></div>
-          <div class="panel-body">
           
-           <input size="16" type="text" value="2012-06-15" class="form_datetime">
+      </div>
+    </div>
+  </div>
+  <div class="col-xs-12 col-sm-6 col-md-4"> 
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3 class="panel-title">Get offline data</h3></div>
+      <div class="panel-body">
+          
+        <div class="form-group">
+          <label for="dtinput1">From date:</label>
+          <div class='input-group date' id='datetimepicker1'>
+            <input type='text' class="form-control" id="dtinput1"/>
+            <span class="input-group-addon">
+              <span class="glyphicon glyphicon-calendar"></span>
+            </span>
+          </div>
+          <label for="dtinput2">To date:</label>
+          <div class='input-group date' id='datetimepicker2'>
+            <input type='text' class="form-control" id="dtinput2"/>
+            <span class="input-group-addon">
+              <span class="glyphicon glyphicon-calendar"></span>
+            </span>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="getHistoryData()">  
+            <span class="glyphicon glyphicon-book"></span> Show  
+          </button> 
+        </div>
+        
+      </div>
+    </div>
+  </div>      
 
+  <div class="col-xs-12 col-sm-6 col-md-4"> 
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3 class="panel-title">Actions</h3></div>
+      <div class="panel-body">
+          
+        <div class="form-group">
+          <div class='input-group date' id='datetimepickera'>
+            <input type='text' class="form-control" />
+            <span class="input-group-addon">
+              <span class="fa fa-calendar"></span>
+            </span>
           </div>
+          <div class="checkbox">
+            <label>
+              <input type="checkbox" id="cbDeleteDuplicates"/> Delete duplicates 
+            </label>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="executeOptimization()">  
+            <span class="glyphicon glyphicon-compressed"></span> Optimize data  
+          </button> 
         </div>
+         
       </div>
     </div>
-    
-  </body>
+  </div>
+
+  <div class="col-xs-12 col-sm-12 col-md-9 col-md-offset-0 collapse" id="history-block"> 
+    <div class="panel panel-default">
+      <div class="panel-heading"><h3 class="panel-title" id="history-paneltitle">Actions</h3></div>
+      <div class="panel-body">
+
+        <div class="block" id="results-chart"></div>   
+        <div class="progress collapse" id="progress-bar">
+          <div class="progress-bar progress-bar-striped active" role="progressbar"
+               aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+      
+  <script type="text/javascript">
+    $(function () {
+      $('#datetimepicker1').datetimepicker({
+        locale: 'ru',
+        date: new Date(new Date() - 5*60*60*1000) // -5hours
+      });
+      $('#datetimepicker2').datetimepicker({
+        locale: 'ru',
+        date: new Date() // now
+      });
+        
+      $('#datetimepickera').datetimepicker({
+        locale: 'ru',
+        viewMode: 'months',
+        format: 'MM.YYYY',
+        date: new Date() // now
+      });
+
+      $("#datetimepicker1").on("dp.change", function (e) {
+          $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+      });
+      $("#datetimepicker2").on("dp.change", function (e) {
+          $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+      });
+    });
+  </script>
+
+   
 </html>
-
-
 <!-- Use a templated HTML printing scriptlet to import JavaScript. -->
 <?!= HtmlService.createHtmlOutputFromFile('JavaScript').getContent(); ?>
