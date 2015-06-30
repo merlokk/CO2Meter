@@ -52,6 +52,22 @@
     alertTimerError = setTimeout('$("#error-message").hide()', 10000);  
   }
   
+  // get weather forecast
+  function getForecast() {
+    $(function() {
+      google.script.run
+         .withSuccessHandler(function(contents) {
+              $('#weather-block').show();
+              updateForecast(contents);
+            })
+         .withFailureHandler(function(msg) {
+              ShowErrorMessage('Get forecast error: ' + msg);
+              $('#weather-block').hide();
+            })
+         .getForecast();
+    });
+  };
+
   // get realtime data
   function getData() {
     $(function() {
@@ -67,11 +83,44 @@
     });
   };
   
-  // timer 10 sec
+  // timer 
   $(document).ready(function(){ 
     getData();
-    setInterval('getData()',10000);  
+    setInterval('getData()', 10000);  
+    
+    getForecast();
+    setInterval('getForecast()', 120000);  
   });  
+
+  function updateForecast(contents){
+    try {
+      var c = $.parseJSON(contents);
+      if (typeof c.city === 'undefined') {throw new Error('returned no data')};
+    
+      $("#weather-paneltitle").text('Weather forecast for ' + c.city.name);
+      $("#weather-results").empty();
+      
+      moment.locale('ru');
+      for (var i = 0; i < c.list.length; i++) {
+      var dt = moment.utc(c.list[i].dt * 1000);
+      var elm = '<div class="small text-center pull-left">';
+      elm = elm + '<div title="Date">' + dt.format("DD MMM") + '</div>';
+      elm = elm + '<img title="' + c.list[i].weather[0].description + '" src="https://openweathermap.org/img/w/' + c.list[i].weather[0].icon + '.png"/>';
+      elm = elm + '<div title="Day temp">' + c.list[i].temp.day + '&deg;C</div>';
+      elm = elm + '<div title="Night temp">' + c.list[i].temp.night + '&deg;C</div>';
+      elm = elm + '<div title="Humidity">' + c.list[i].humidity + '%</div>';
+      elm = elm + '<div title="Wind">' + c.list[i].speed + 'm/s</div>';
+      elm = elm + '<div title="Clouds">' + c.list[i].clouds + '%</div>';
+      elm = elm + '</div>';
+      $("#weather-results").append(elm);
+      }
+    
+    }
+    catch(err) { 
+      $('#weather-block').hide();
+      ShowErrorMessage('Get history data error: ' + err.message);
+    }
+  }
 
   function updateDisplay(contents) {
     $('#main-heading').hide();

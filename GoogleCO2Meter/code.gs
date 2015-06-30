@@ -7,7 +7,29 @@ function doGet(e) {
       .setTitle('CO2Meter panel');
 }
 
+function CheckLibs(){
+  if (typeof DriveApp === 'undefined') {
+    throw new Error('API DriveApp is undefined');
+  }
+  if (typeof SpreadsheetApp === 'undefined') {
+    throw new Error('API SpreadsheetApp is undefined');
+  }
+}
+
+function getForecast(){
+  var response = UrlFetchApp.fetch('http://api.openweathermap.org/data/2.5/forecast/daily?id=706483&type=accurate&lang=ru&units=metric');
+  
+  if (response.getResponseCode() == 200){
+    Logger.log('Get weather forecast OK');
+    return response.getContentText();
+  } else {
+    Logger.log('Get weather forecast error:' + response.getResponseCode());
+    return '{}';
+  }
+}
+
 function getContent() {
+  CheckLibs();
   var file;
   var content = '{"date":"","idate":"0","temperature":"0","co2level":"0","humidity":"0"}';
  
@@ -52,6 +74,8 @@ function GetSpreadsheet(date){
 }
 
 function deleteDuplicates(intDate, deleteDuplicates){
+  CheckLibs();
+
   date = AZToDate(intDate); 
   var ss = GetSpreadsheet(date);
   
@@ -100,6 +124,8 @@ function MakeMesJSON(row){
 }
 
 function getHistory(intDate1, intDate2, cntPoints) {
+  CheckLibs();
+
   var res = [];
 
   var dates = [];
