@@ -202,10 +202,12 @@
     data.addColumn('number', 'CO2 level');
 
     contents.forEach(function(elm) { 
+      if (typeof elm[2] === 'string') elm[2] = elm[2].replace(',', '.');
+      if (typeof elm[3] === 'string') elm[3] = elm[3].replace(',', '.');
       data.addRow([
         AZToDate(elm[1]), 
-        parseFloat(elm[2].replace(',', '.')), 
-        parseFloat(elm[3].replace(',', '.')), 
+        parseFloat(elm[2]), 
+        parseFloat(elm[3]), 
         elm[4]]);
     });
     chart.data = data;
