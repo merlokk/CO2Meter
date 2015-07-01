@@ -15,6 +15,17 @@
   var vTimer;
   var alertTimerOK;
   var alertTimerError;
+  var historyTimer;
+  var chart = {
+    chart: null, 
+    data: null, 
+    options: null,
+    draw: function(){
+      if (this.data != null) {
+        this.chart.draw(this.data, this.options);    
+      }
+    }
+   }
 
   // library
   function NormalizeDate(din) {
@@ -83,14 +94,39 @@
     });
   };
   
-  // timer 
+  // fix some things in layout
+  function fixLayout(){
+    if ($("#weather-results").height() < $("#panel-results").height()) {
+      $("#weather-results").height($("#panel-results").height());
+    }
+  }
+  
+  // on document ready
   $(document).ready(function(){ 
+    fixLayout();
+    
+    // timer 
     getData();
     setInterval('getData()', 10000);  
     
     getForecast();
     setInterval('getForecast()', 120000);  
-  });  
+  }); 
+  
+  // on window resize
+  //create trigger to resizeEnd event     
+  $(window).resize(function() {
+    if(this.resizeTO) clearTimeout(this.resizeTO);
+    this.resizeTO = setTimeout(function() {
+        $(this).trigger('resizeEnd');
+    }, 500);
+  });
+
+  //redraw when window resize is completed  
+  $(window).on('resizeEnd', function() {
+    fixLayout();
+    chart.draw();
+  });
 
   function updateForecast(contents){
     try {
@@ -100,20 +136,21 @@
       $("#weather-paneltitle").text('Weather forecast for ' + c.city.name);
       $("#weather-results").empty();
       
-      moment.locale('ru');
       for (var i = 0; i < c.list.length; i++) {
-      var dt = moment.utc(c.list[i].dt * 1000);
-      var elm = '<div class="small text-center pull-left">';
-      elm = elm + '<div title="Date">' + dt.format("DD MMM") + '</div>';
-      elm = elm + '<img title="' + c.list[i].weather[0].description + '" src="https://openweathermap.org/img/w/' + c.list[i].weather[0].icon + '.png"/>';
-      elm = elm + '<div title="Day temp">' + c.list[i].temp.day + '&deg;C</div>';
-      elm = elm + '<div title="Night temp">' + c.list[i].temp.night + '&deg;C</div>';
-      elm = elm + '<div title="Humidity">' + c.list[i].humidity + '%</div>';
-      elm = elm + '<div title="Wind">' + c.list[i].speed + 'm/s</div>';
-      elm = elm + '<div title="Clouds">' + c.list[i].clouds + '%</div>';
-      elm = elm + '</div>';
-      $("#weather-results").append(elm);
+        var dt = moment.utc(c.list[i].dt * 1000);
+        var elm = '<div class="small text-center pull-left" style="padding-top: 3px;">';
+        elm = elm + '<div title="Date">' + dt.format("DD MMM") + '</div>';
+        elm = elm + '<img title="' + c.list[i].weather[0].description + '" src="https://openweathermap.org/img/w/' + c.list[i].weather[0].icon + '.png"/>';
+        elm = elm + '<div title="Day temp">' + c.list[i].temp.day + '&deg;C</div>';
+        elm = elm + '<div title="Night temp">' + c.list[i].temp.night + '&deg;C</div>';
+        elm = elm + '<div title="Humidity">' + c.list[i].humidity + '%</div>';
+        elm = elm + '<div title="Wind">' + c.list[i].speed + 'm/s</div>';
+        elm = elm + '<div title="Clouds">' + c.list[i].clouds + '%</div>';
+        elm = elm + '</div>';
+        $("#weather-results").append(elm);
       }
+      
+      fixLayout();
     
     }
     catch(err) { 
@@ -147,7 +184,7 @@
     } else {
       $('#results').append('No data from datalogger.');
     }
-
+    fixLayout();
   }
 
   function showChart(contents) {
@@ -171,8 +208,9 @@
         parseFloat(elm[3].replace(',', '.')), 
         elm[4]]);
     });
+    chart.data = data;
 
-    var options = {
+    chart.options = {
       hAxis: {
         format: 'dd.MM HH:mm'
       },
@@ -194,19 +232,19 @@
       },
     };
 
-    var chart = new google.visualization.LineChart(document.getElementById('results-chart'));
-    chart.draw(data, options);    
-    
+    chart.chart = new google.visualization.LineChart(document.getElementById('results-chart'));
+    chart.draw();    
+        
     console.log('chart ok');
   }
 
-  function getHistoryData() {
+  function getHistoryDataInt(date1, date2, updating) {
     try{
       $('#history-block').show();
       $('#history-paneltitle').text(
-        'History from ' + $('#datetimepicker1').data('DateTimePicker').date().format('DD.MM.YYYY HH:mm') +
-        ' to ' + $('#datetimepicker2').data('DateTimePicker').date().format('DD.MM.YYYY HH:mm') ); 
-      $('#results-chart').empty();
+        'History from ' + date1.format('DD.MM.YYYY HH:mm') +
+        ' to ' + date2.format('DD.MM.YYYY HH:mm') + ((updating) ? '  (updating)' : '')); 
+      if (!updating) {$('#results-chart').empty()}
       $('#progress-bar').show();
       google.script.run
          .withSuccessHandler(function(hisdata) {
@@ -214,17 +252,37 @@
             })
          .withFailureHandler(function(msg) {
               ShowErrorMessage('History data server error: ' + msg);
+              $('#results-chart').empty();
               $('#progress-bar').hide();
               $('#history-block').hide();
             })
          .getHistory(
-           DateToAZ($('#datetimepicker1').data('DateTimePicker').date().toDate()), 
-           DateToAZ($('#datetimepicker2').data('DateTimePicker').date().toDate()),
+           DateToAZ(date1.toDate()), 
+           DateToAZ(date2.toDate()),
            300);
     }
     catch(err) { 
       ShowErrorMessage('Get history data error: ' + err.message);
     }
+  }
+
+  function getHistoryData() {
+    clearInterval(historyTimer);
+
+    getHistoryDataInt(
+      $('#datetimepicker1').data('DateTimePicker').date(),
+      $('#datetimepicker2').data('DateTimePicker').date(),
+      false);
+  }
+  
+  function getHistoryDataOnline() {
+    getHistoryDataInt(
+      moment().subtract(12, 'hours'),
+      moment(),
+      true);
+      
+    clearInterval(historyTimer);
+    historyTimer = setInterval('getHistoryDataOnline()', 240000); // 240sec = 4min
   }
 
   function executeOptimization() {
