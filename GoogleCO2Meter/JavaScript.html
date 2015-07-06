@@ -293,9 +293,9 @@
   function executeOptimization() {
     try{
       google.script.run
-         .withSuccessHandler(function(hisdata) {
+         .withSuccessHandler(function(optlen) {
               ShowOKMessage('<strong>Optimization for month ' + 
-                $('#datetimepickera').data('DateTimePicker').date().format('MM.YYYY') + ' is completed!</strong>');
+                $('#datetimepickera').data('DateTimePicker').date().format('MM.YYYY') + ' is completed!</strong> Optimized: ' + optlen + ' rows');
             })
          .withFailureHandler(function(msg) {
               ShowErrorMessage('Optimization server error: ' + msg);

@@ -113,6 +113,8 @@ function deleteDuplicates(intDate, deleteDuplicates){
 
   // save all the work 
   SpreadsheetApp.flush();
+  
+  return duplicates.length;
 }
 
 function AZToDate(intDate){
