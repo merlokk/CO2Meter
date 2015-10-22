@@ -25,6 +25,9 @@ object MainFrm: TMainFrm
     TabOrder = 0
     object TabSheet1: TTabSheet
       Caption = 'Config'
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
       ExplicitHeight = 206
       object shCOMState: TShape
         Left = 224
@@ -149,6 +152,9 @@ object MainFrm: TMainFrm
     object TabSheet2: TTabSheet
       Caption = 'State'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
       ExplicitHeight = 202
       object lbCurrentMes: TLabel
         Left = 3

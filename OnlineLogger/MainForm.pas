@@ -151,7 +151,7 @@ var
   StartDate: TDateTime;
 begin
   Timer1.Enabled := false;
-  if ex <> nil then
+  if (ex <> nil) and (ex.CO2Meter <> nil) then
     try
       // com port connect
       if ex.CO2Meter.Connected then
@@ -168,7 +168,7 @@ begin
         shCOMState.Brush.Color := clRed;
 
       // google connect state
-      if not ex.GoogleSender.Connected then
+      if (ex.GoogleSender = nil) or not ex.GoogleSender.Connected then
         shGoogleConnect.Brush.Color := clRed
       else
         if ex.CO2Meter.DataCount < 10 then
